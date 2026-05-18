@@ -18,7 +18,7 @@ def send_otp_email(user: User):
     if not check_email_service():
         return False
 
-    otp = str(random.randint(1000, 9999))
+    otp = str(random.randint(100000, 999999))
 
     OTP.objects.create(
         user=user,
