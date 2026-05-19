@@ -1,0 +1,211 @@
+import datetime
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+from apps.main.models import (
+    CharecterVoice, 
+    NatureSounds, 
+    BackgroundImage, 
+    Meditation, 
+    MeditationSteps, 
+    MeditationCategory,
+    MeditationStep
+)
+
+User = get_user_model()
+
+class MeditationGenerationTests(APITestCase):
+
+    def setUp(self):
+        # Create user
+        self.user = User.objects.create_user(
+            email="test@example.com",
+            password="testpassword123",
+            username="testuser"
+        )
+        # Create audio dummy file
+        dummy_audio = SimpleUploadedFile("voice.mp3", b"dummy audio content", content_type="audio/mpeg")
+        dummy_image = SimpleUploadedFile("bg.jpg", b"dummy image content", content_type="image/jpeg")
+
+        # Create base data
+        self.character_voice = CharecterVoice.objects.create(
+            name="Aura",
+            short_description="A soothing and calm female voice.",
+            file=dummy_audio
+        )
+        self.background_image = BackgroundImage.objects.create(
+            name="Cosmic Sky",
+            file=dummy_image
+        )
+        self.nature_sound = NatureSounds.objects.create(
+            name="Ocean Waves",
+            file=dummy_audio
+        )
+
+        self.url = reverse('meditation-generate')
+
+    def test_generate_meditation_unauthenticated(self):
+        # Unauthenticated request should fail with 401
+        data = {
+            "category": "relaxation",
+            "charecter_voice_id": self.character_voice.id,
+            "experience_question_answers": {"name": "Anna", "goal": "stress release"},
+            "nature_sound_name": "Ocean Waves",
+            "background_image_id": self.background_image.id
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_generate_meditation_success(self):
+        # Authenticate
+        self.client.force_authenticate(user=self.user)
+
+        data = {
+            "category": "relaxation",
+            "charecter_voice_id": self.character_voice.id,
+            "experience_question_answers": {"name": "Anna", "goal": "stress release"},
+            "nature_sound_name": "Ocean Waves",
+            "background_image_id": self.background_image.id
+        }
+
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Assert response schema
+        res_data = response.data
+        self.assertEqual(set(res_data.keys()), {'id', 'meditation_id', 'total_duration', 'steps'})
+        self.assertEqual(res_data['total_duration'], 600.0)
+
+        # Verify steps
+        steps = res_data['steps']
+        self.assertEqual(len(steps), 7)
+        
+        # Verify step types and percentages
+        expected_steps = [
+            (MeditationStep.GREETING, 7.5),
+            (MeditationStep.PERSONAL, 10.0),
+            (MeditationStep.INTRODUCTION, 15.0),
+            (MeditationStep.SUGGESTION, 20.0),
+            (MeditationStep.CONFIRMATION, 10.0),
+            (MeditationStep.VISUALIZATION, 30.0),
+            (MeditationStep.CONCLUSION, 7.5),
+        ]
+        
+        for idx, (step_type, expected_percent) in enumerate(expected_steps):
+            step = steps[idx]
+            self.assertEqual(step['step_type'], step_type)
+            self.assertEqual(step['duration_percentage'], expected_percent)
+
+        # Assert DB items exist
+        meditation = Meditation.objects.get(id=res_data['id'])
+        self.assertEqual(meditation.steps.count(), 7)
+        self.assertGreater(meditation.total_duration, datetime.timedelta(seconds=0))
+
+    def test_generate_meditation_nature_sound_not_found(self):
+        self.client.force_authenticate(user=self.user)
+
+        data = {
+            "category": "self_love",
+            "charecter_voice_id": self.character_voice.id,
+            "experience_question_answers": {"name": "Ben"},
+            "nature_sound_name": "Non Existent Sound",
+            "background_image_id": self.background_image.id
+        }
+
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        res_data = response.data
+        self.assertEqual(set(res_data.keys()), {'id', 'meditation_id', 'total_duration', 'steps'})
+
+    def test_get_meditation_detail(self):
+        self.client.force_authenticate(user=self.user)
+        
+        # Create a meditation directly for testing retrieve
+        meditation = Meditation.objects.create(
+            user=self.user,
+            title="Retrieve Test",
+            charecter_voice=self.character_voice,
+            category=MeditationCategory.ENERGY
+        )
+        MeditationSteps.objects.create(
+            meditation=meditation,
+            step_type=MeditationStep.GREETING,
+            content="Hello",
+            duration=datetime.timedelta(seconds=60)
+        )
+
+        detail_url = reverse('meditation-detail', args=[meditation.pk])
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Should return full meditation data (MeditationSerializer)
+        self.assertEqual(response.data['id'], meditation.pk)
+        self.assertEqual(response.data['title'], "Retrieve Test")
+        self.assertEqual(response.data['category'], MeditationCategory.ENERGY)
+        self.assertEqual(len(response.data['steps']), 1)
+        self.assertEqual(response.data['steps'][0]['step_type'], MeditationStep.GREETING)
+        self.assertEqual(response.data['total_duration'], 60.0)
+
+    def test_get_meditation_detail_unauthorized(self):
+        # Create meditation belonging to another user
+        other_user = User.objects.create_user(email="other@test.com", password="pwd", username="other")
+        meditation = Meditation.objects.create(
+            user=other_user,
+            title="Retrieve Test Other",
+            charecter_voice=self.character_voice,
+            category=MeditationCategory.ENERGY
+        )
+
+        self.client.force_authenticate(user=self.user)
+        detail_url = reverse('meditation-detail', args=[meditation.pk])
+        response = self.client.get(detail_url)
+        # Queryset filters by user, so it should be a 404
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    def test_meditation_archive(self):
+        self.client.force_authenticate(user=self.user)
+        
+        # Create a couple of meditations
+        med1 = Meditation.objects.create(
+            user=self.user,
+            title="Archived 1",
+            charecter_voice=self.character_voice,
+            category=MeditationCategory.RELAXATION
+        )
+        MeditationSteps.objects.create(meditation=med1, step_type=MeditationStep.GREETING, content="Hi", duration=datetime.timedelta(seconds=120))
+        
+        med2 = Meditation.objects.create(
+            user=self.user,
+            title="Archived 2",
+            charecter_voice=self.character_voice,
+            category=MeditationCategory.ENERGY
+        )
+        MeditationSteps.objects.create(meditation=med2, step_type=MeditationStep.GREETING, content="Hi", duration=datetime.timedelta(seconds=180))
+
+        archive_url = reverse('meditation-archive')
+        response = self.client.get(archive_url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        res_data = response.data
+        
+        self.assertIn('all_meditation_ids', res_data)
+        self.assertIn('overall_total_duration', res_data)
+        self.assertIn('results', res_data)
+        
+        # Check IDs
+        self.assertEqual(len(res_data['all_meditation_ids']), 2)
+        self.assertIn(med1.id, res_data['all_meditation_ids'])
+        self.assertIn(med2.id, res_data['all_meditation_ids'])
+        
+        # Check overall duration (120 + 180 = 300)
+        self.assertEqual(res_data['overall_total_duration'], 300.0)
+        
+        # Check results contents
+        results = res_data['results']
+        self.assertEqual(len(results), 2)
+        # Verify required keys in list items
+        expected_keys = {'id', 'banner_url', 'category', 'category_name', 'created_at', 'total_duration'}
+        self.assertEqual(set(results[0].keys()), expected_keys)
+        self.assertEqual(results[0]['category_name'], "Energie") # med2 is first because of order_by('-created_at')
