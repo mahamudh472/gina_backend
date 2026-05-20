@@ -34,7 +34,7 @@ services:
     image: nginx:1.25-alpine
     container_name: gina_nginx
     ports:
-      - "80:80"
+      - "8000:80"
     volumes:
       - ./nginx:/etc/nginx/conf.d
       - static_volume:/app/staticfiles
