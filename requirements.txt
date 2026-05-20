@@ -18,4 +18,5 @@ sqlparse==0.5.5
 types-jmespath==1.1.0.20260124
 types-psycopg2==2.9.21.20260422
 types-PyYAML==6.0.12.20260408
+stripe==15.1.0
 typing_extensions==4.15.0
