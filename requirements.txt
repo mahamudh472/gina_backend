@@ -1,6 +1,8 @@
 asgiref==3.11.1
 Django==6.0.4
 django-cors-headers==4.9.0
+django-unfold==0.94.0
+requests==2.34.2
 django-stubs==6.0.3
 django-stubs-ext==6.0.3
 django-types==0.24.0
@@ -20,3 +22,5 @@ types-psycopg2==2.9.21.20260422
 types-PyYAML==6.0.12.20260408
 stripe==15.1.0
 typing_extensions==4.15.0
+psycopg2-binary==2.9.9
+gunicorn==23.0.0

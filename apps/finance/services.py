@@ -15,6 +15,26 @@ User = get_user_model()
 
 class SubscriptionService:
     @staticmethod
+    def _parse_timestamp(timestamp):
+        if timestamp:
+            try:
+                return datetime.fromtimestamp(int(timestamp), tz=dt_timezone.utc)
+            except Exception:
+                pass
+        return None
+
+    @staticmethod
+    def _to_dict(stripe_obj):
+        if stripe_obj is None:
+            return {}
+        if hasattr(stripe_obj, 'to_dict'):
+            try:
+                return stripe_obj.to_dict()
+            except Exception:
+                pass
+        return dict(stripe_obj)
+
+    @staticmethod
     def create_checkout_session(user, plan_slug, success_url, cancel_url):
         """
         Creates a Stripe checkout session for subscribing to a plan.
@@ -153,7 +173,7 @@ class SubscriptionService:
         """
         try:
             event = StripeUtil.verify_webhook(payload, sig_header)
-            event = event.to_dict()
+            event = SubscriptionService._to_dict(event)
         except Exception as e:
             raise ValueError(f"Webhook verification failed: {str(e)}")
 
@@ -199,10 +219,11 @@ class SubscriptionService:
         # Fetch full subscription details from Stripe
         try:
             stripe_sub = stripe.Subscription.retrieve(stripe_sub_id)
-            current_period_start = datetime.fromtimestamp(stripe_sub.current_period_start, tz=dt_timezone.utc)
-            current_period_end = datetime.fromtimestamp(stripe_sub.current_period_end, tz=dt_timezone.utc)
-            status = stripe_sub.status
-            cancel_at_period_end = stripe_sub.cancel_at_period_end
+            stripe_sub_dict = SubscriptionService._to_dict(stripe_sub)
+            current_period_start = SubscriptionService._parse_timestamp(stripe_sub_dict.get('current_period_start')) or timezone.now()
+            current_period_end = SubscriptionService._parse_timestamp(stripe_sub_dict.get('current_period_end')) or (timezone.now() + timezone.timedelta(days=30))
+            status = stripe_sub_dict.get('status') or 'active'
+            cancel_at_period_end = stripe_sub_dict.get('cancel_at_period_end') or False
         except Exception:
             current_period_start = timezone.now()
             current_period_end = timezone.now() + timezone.timedelta(days=30)
@@ -256,10 +277,11 @@ class SubscriptionService:
 
         try:
             stripe_sub = stripe.Subscription.retrieve(stripe_sub_id)
-            new_start = datetime.fromtimestamp(stripe_sub.current_period_start, tz=dt_timezone.utc)
-            new_end = datetime.fromtimestamp(stripe_sub.current_period_end, tz=dt_timezone.utc)
-            status = stripe_sub.status
-            cancel_at_period_end = stripe_sub.cancel_at_period_end
+            stripe_sub_dict = SubscriptionService._to_dict(stripe_sub)
+            new_start = SubscriptionService._parse_timestamp(stripe_sub_dict.get('current_period_start')) or subscription.current_period_start or timezone.now()
+            new_end = SubscriptionService._parse_timestamp(stripe_sub_dict.get('current_period_end')) or subscription.current_period_end or (timezone.now() + timezone.timedelta(days=30))
+            status = stripe_sub_dict.get('status') or 'active'
+            cancel_at_period_end = stripe_sub_dict.get('cancel_at_period_end') or False
         except Exception as e:
             logger.error(f"Error retrieving subscription details: {str(e)}", exc_info=True)
             return
@@ -299,8 +321,8 @@ class SubscriptionService:
         except Subscription.DoesNotExist:
             return
 
-        new_start = datetime.fromtimestamp(stripe_sub.get('current_period_start'), tz=dt_timezone.utc)
-        new_end = datetime.fromtimestamp(stripe_sub.get('current_period_end'), tz=dt_timezone.utc)
+        new_start = SubscriptionService._parse_timestamp(stripe_sub.get('current_period_start')) or subscription.current_period_start or timezone.now()
+        new_end = SubscriptionService._parse_timestamp(stripe_sub.get('current_period_end')) or subscription.current_period_end or (timezone.now() + timezone.timedelta(days=30))
         status = stripe_sub.get('status')
         cancel_at_period_end = stripe_sub.get('cancel_at_period_end')
 

@@ -1,0 +1,31 @@
+# Git
+.git
+.gitignore
+
+# Python
+.venv
+venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local Database & Cache
+db.sqlite3
+*.db
+.cache/
+
+# Uploads & Assets
+media/
+staticfiles/
+
+# Configuration & Secrets
+.env
+.env.example
+
+# IDE & Editor Configs
+.idea/
+.vscode/
+.gemini/
+*.swp
+*.swo
