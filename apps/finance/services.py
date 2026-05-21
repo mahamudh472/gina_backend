@@ -180,14 +180,20 @@ class SubscriptionService:
         event_type = event.get('type')
         data_object = event.get('data', {}).get('object', {})
 
+        logger.info("Received Stripe webhook event: %s", event_type)
+
         if event_type == 'checkout.session.completed':
             SubscriptionService._handle_checkout_session_completed(data_object)
         elif event_type in ['invoice.paid', 'invoice.payment_succeeded']:
             SubscriptionService._handle_invoice_paid(data_object)
+        elif event_type == 'customer.subscription.created':
+            SubscriptionService._handle_subscription_created(data_object)
         elif event_type == 'customer.subscription.updated':
             SubscriptionService._handle_subscription_updated(data_object)
         elif event_type == 'customer.subscription.deleted':
             SubscriptionService._handle_subscription_deleted(data_object)
+        else:
+            logger.info("Ignoring unhandled Stripe webhook event: %s", event_type)
 
         return event
 
@@ -204,16 +210,27 @@ class SubscriptionService:
         stripe_customer_id = session.get('customer')
 
         if not user_id or not stripe_sub_id:
+            logger.warning(
+                "Skipping checkout.session.completed: missing user_id or subscription "
+                "(user_id=%s, subscription=%s)",
+                user_id,
+                stripe_sub_id,
+            )
             return
 
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
+            logger.warning("Skipping checkout.session.completed: user %s not found", user_id)
             return
 
         try:
             plan = Plan.objects.get(stripe_price_id=price_id)
         except Plan.DoesNotExist:
+            logger.warning(
+                "Skipping checkout.session.completed: plan with stripe_price_id %s not found",
+                price_id,
+            )
             return
 
         # Fetch full subscription details from Stripe
@@ -256,6 +273,70 @@ class SubscriptionService:
         # Update credit wallet
         wallet, _ = CreditWallet.objects.get_or_create(user=user)
         wallet.balance = plan.credit_amount
+        wallet.last_reset_at = timezone.now()
+        wallet.save()
+
+    @staticmethod
+    @transaction.atomic
+    def _handle_subscription_created(stripe_sub):
+        """
+        Creates a local subscription from a Stripe subscription event.
+        This is a fallback for event ordering and dashboard webhook configs where
+        customer.subscription.created arrives before checkout.session.completed.
+        """
+        stripe_sub_id = stripe_sub.get('id')
+        metadata = stripe_sub.get('metadata') or {}
+        user_id = metadata.get('user_id')
+        price_id = metadata.get('stripe_price_id')
+
+        if not price_id:
+            price_id = stripe_sub.get('items', {}).get('data', [{}])[0].get('price', {}).get('id')
+
+        if not user_id:
+            logger.warning(
+                "Skipping customer.subscription.created for %s: missing user_id metadata",
+                stripe_sub_id,
+            )
+            return
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            logger.warning(
+                "Skipping customer.subscription.created for %s: user %s not found",
+                stripe_sub_id,
+                user_id,
+            )
+            return
+
+        try:
+            plan = Plan.objects.get(stripe_price_id=price_id)
+        except Plan.DoesNotExist:
+            logger.warning(
+                "Skipping customer.subscription.created for %s: plan with stripe_price_id %s not found",
+                stripe_sub_id,
+                price_id,
+            )
+            return
+
+        current_period_start = SubscriptionService._parse_timestamp(stripe_sub.get('current_period_start')) or timezone.now()
+        current_period_end = SubscriptionService._parse_timestamp(stripe_sub.get('current_period_end')) or (timezone.now() + timezone.timedelta(days=30))
+
+        subscription, _ = Subscription.objects.update_or_create(
+            user=user,
+            defaults={
+                'plan': plan,
+                'stripe_subscription_id': stripe_sub_id,
+                'stripe_customer_id': stripe_sub.get('customer'),
+                'status': stripe_sub.get('status') or 'active',
+                'current_period_start': current_period_start,
+                'current_period_end': current_period_end,
+                'cancel_at_period_end': stripe_sub.get('cancel_at_period_end') or False,
+            }
+        )
+
+        wallet, _ = CreditWallet.objects.get_or_create(user=user)
+        wallet.balance = subscription.plan.credit_amount
         wallet.last_reset_at = timezone.now()
         wallet.save()
 
@@ -319,6 +400,7 @@ class SubscriptionService:
         try:
             subscription = Subscription.objects.select_for_update().get(stripe_subscription_id=stripe_sub_id)
         except Subscription.DoesNotExist:
+            SubscriptionService._handle_subscription_created(stripe_sub)
             return
 
         new_start = SubscriptionService._parse_timestamp(stripe_sub.get('current_period_start')) or subscription.current_period_start or timezone.now()

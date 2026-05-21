@@ -58,6 +58,12 @@ class StripeUtil:
                 metadata={
                     "user_id": str(user.id),
                     "stripe_price_id": price_id
+                },
+                subscription_data={
+                    "metadata": {
+                        "user_id": str(user.id),
+                        "stripe_price_id": price_id
+                    }
                 }
             )
             return session

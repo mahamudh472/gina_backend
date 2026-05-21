@@ -121,6 +121,42 @@ class SubscriptionTestCase(TestCase):
         wallet = CreditWallet.objects.get(user=self.user)
         self.assertEqual(wallet.balance, 3)  # Core plan should grant 3 credits
 
+    def test_subscription_created_webhook_initializes_subscription(self):
+        """
+        Verify subscription created can initialize the local subscription.
+        """
+        stripe_sub_data = {
+            'id': 'sub_mock_456',
+            'customer': 'cus_mock_456',
+            'metadata': {
+                'user_id': str(self.user.id),
+                'stripe_price_id': 'price_core_mock_123'
+            },
+            'current_period_start': 1700000000,
+            'current_period_end': 1702592000,
+            'status': 'active',
+            'cancel_at_period_end': False,
+            'items': {
+                'data': [{
+                    'price': {
+                        'id': 'price_core_mock_123'
+                    }
+                }]
+            }
+        }
+
+        SubscriptionService._handle_subscription_created(stripe_sub_data)
+
+        subscription = Subscription.objects.filter(user=self.user).first()
+        self.assertIsNotNone(subscription)
+        self.assertEqual(subscription.plan, self.core_plan)
+        self.assertEqual(subscription.stripe_subscription_id, 'sub_mock_456')
+        self.assertEqual(subscription.stripe_customer_id, 'cus_mock_456')
+        self.assertEqual(subscription.status, 'active')
+
+        wallet = CreditWallet.objects.get(user=self.user)
+        self.assertEqual(wallet.balance, 3)
+
     @patch('stripe.Subscription.retrieve')
     @patch('stripe.Subscription.modify')
     def test_upgrade_plan_immediate(self, mock_sub_modify, mock_sub_retrieve):
