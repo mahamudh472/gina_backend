@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visulara - Personalized Meditation</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-effects">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+    
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fa-solid fa-leaf"></i>
+                <h1>Visulara</h1>
+            </div>
+            <p class="subtitle">Your heartfelt personal meditation experience.</p>
+        </header>
+
+        <main class="glass-panel">
+            <!-- STEP 1: CATEGORY -->
+            <section id="step-category" class="step-section active">
+                <h2 style="margin-bottom: 1rem;">Choose your meditation category</h2>
+                <p class="step-note">This selection shapes the tone, pacing, and emphasis of the journey.</p>
+
+                <div class="form-group">
+                    <label for="category-select">Meditation Category</label>
+                    <select id="category-select" required>
+                        <option value="" disabled selected>Select a category</option>
+                        <option value="Relaxation">Relaxation</option>
+                        <option value="Self Love">Self Love</option>
+                        <option value="Focus & Clarity">Focus & Clarity</option>
+                        <option value="Gratitude">Gratitude</option>
+                        <option value="Trust">Trust</option>
+                        <option value="Energy">Energy</option>
+                        <option value="Transformation">Transformation</option>
+                        <option value="Inner Peace">Inner Peace</option>
+                    </select>
+                </div>
+
+                <button id="btn-category-next" class="primary-btn" type="button">
+                    <i class="fa-solid fa-arrow-right"></i> Continue
+                </button>
+            </section>
+
+            <!-- STEP 2: PERSONALIZATION -->
+            <section id="step-personalization" class="step-section hidden">
+                <h2 style="margin-bottom: 0.75rem;">Tell us about your moment...</h2>
+                <p class="step-note">Category selected: <span id="selected-category-label">Relaxation</span></p>
+
+                <div class="form-group">
+                    <label for="name">Your Name</label>
+                    <input type="text" id="name" placeholder="Regina">
+                </div>
+
+                <div class="form-group">
+                    <label for="current-mood">How are you feeling today?</label>
+                    <textarea id="current-mood" placeholder="e.g., exhausted, restless, tense..." rows="2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="meditation-goal">What would you like to deepen with this meditation?</label>
+                    <textarea id="meditation-goal" placeholder="e.g., feel lighter inside, more relaxed, more at ease..." rows="2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="avoid">What should stay outside today?</label>
+                    <textarea id="avoid" placeholder="e.g., stress at work, fears, exam anxiety, racing thoughts..." rows="2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Where in your body do you feel tension?</label>
+                    <div class="chips-container" id="body-focus-container">
+                        <label class="chip"><input type="checkbox" value="Jaw & face"> Jaw & face (releasing held tension)</label>
+                        <label class="chip"><input type="checkbox" value="Shoulders & neck"> Shoulders & neck (letting go of daily burdens)</label>
+                        <label class="chip"><input type="checkbox" value="Chest & heart"> Chest & heart (allowing the breath to flow freely again)</label>
+                        <label class="chip"><input type="checkbox" value="Lower back"> Lower back (finding stability and support)</label>
+                        <label class="chip"><input type="checkbox" value="Hands & arms"> Hands & arms (letting go of doing)</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="audio-anchor">Your acoustic relaxation anchor?</label>
+                    <select id="audio-anchor">
+                        <option value="Gentle summer rain">Gentle summer rain (cleansing and freshness)</option>
+                        <option value="Soft wind rustling">Soft wind rustling (letting thoughts drift away)</option>
+                        <option value="Crackling fireplace">Crackling fireplace (warmth and comfort)</option>
+                        <option value="Rhythmic ocean waves">Rhythmic ocean waves (harmony with life)</option>
+                        <option value="Complete silence">Complete silence (no additional sound layer)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="landscape-env">Your power landscape?</label>
+                    <select id="landscape-env">
+                        <option value="Deep green ancient forest">Deep green ancient forest (grounding and protection)</option>
+                        <option value="Quiet mountain lake at dusk">Quiet mountain lake at dusk (clarity and stillness)</option>
+                        <option value="Endless white sandy beach">Endless white sandy beach (space and freedom)</option>
+                        <option value="Flower meadow in sunlight">Flower meadow in sunlight (lightness and joy)</option>
+                        <option value="Temple above the clouds">Temple above the clouds (elevation and perspective)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="voice-select">Choose your Guide</label>
+                    <select id="voice-select" required>
+                        <option value="" disabled selected>Select a voice</option>
+                        <option value="MZHabtAqfFWWdxrbZ9iS">Frederik</option>
+                        <option value="GeMOKAylhgh6H4xez46a">Jil</option>
+                        <option value="jcAyfPfetMVssD2GY44N">Kerstin</option>
+                        <option value="nPczCjzI2devNBz1zQrb">Brian</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="duration-select">Meditation Duration</label>
+                    <select id="duration-select" required>
+                        <option value="" disabled selected>Select a duration</option>
+                        <option value="5">5 Minutes</option>
+                        <option value="10">10 Minutes</option>
+                        <option value="20">20 Minutes</option>
+                        <option value="30">30 Minutes</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="experience-select">Experience Level</label>
+                    <select id="experience-select" required>
+                        <option value="" disabled selected>Select your level</option>
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                </div>
+
+                <div class="step-actions">
+                    <button id="btn-category-back" class="secondary-btn" type="button">Back to category</button>
+                    <button id="btn-generate" class="primary-btn" type="button">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Create Meditation
+                    </button>
+                </div>
+            </section>
+
+            <!-- STEP 2: LOADING -->
+            <section id="step-loading" class="step-section hidden loading-container">
+                <div class="breathing-circle">
+                    <div class="inner-circle"></div>
+                </div>
+                <h3>Crafting your journey...</h3>
+                <p>Regina's magic is at work. Breathe in, breathe out.</p>
+            </section>
+
+            <!-- STEP 3: MEDITATION PLAYER -->
+            <section id="step-player" class="step-section hidden">
+                <h2>Your Experience</h2>
+                <p class="subtitle">Listen, relax, and repeat as needed.</p>
+
+                <div class="custom-player">
+                    <div class="generated-meditation-card">
+                        <div>
+                            <p class="generated-label">Generated Meditation</p>
+                            <h3 id="generated-title">Ready to play</h3>
+                            <p id="generated-summary">Your meditation will appear here after generation.</p>
+                        </div>
+                        <button id="btn-download-meditation" class="secondary-btn download-btn" type="button">
+                            <i class="fa-solid fa-download"></i> Download
+                        </button>
+                    </div>
+
+                    <!-- Global Background Music -->
+                    <audio id="bg-music" loop></audio>
+                    
+                    <!-- Meditation Tracks -->
+                    <audio id="audio-meditation"></audio>
+                    <audio id="audio-suggestion"></audio>
+                    <audio id="audio-affirmation"></audio>
+
+                    <div class="track-controls">
+                        <div class="track-item active" id="track-1">
+                            <i class="fa-solid fa-spa"></i>
+                            <div class="track-info">
+                                <h4>Meditation</h4>
+                                <span>The core journey</span>
+                            </div>
+                        </div>
+
+                        <div class="track-item" id="track-2">
+                            <i class="fa-solid fa-seedling"></i>
+                            <div class="track-info">
+                                <h4>Suggestion</h4>
+                                <span>Deepening focus</span>
+                            </div>
+                            <button class="loop-btn" id="loop-suggestion" title="Toggle Loop"><i class="fa-solid fa-repeat"></i></button>
+                        </div>
+
+                        <div class="track-item" id="track-3">
+                            <i class="fa-solid fa-sun"></i>
+                            <div class="track-info">
+                                <h4>Affirmation</h4>
+                                <span>Empowering thoughts</span>
+                            </div>
+                            <button class="loop-btn" id="loop-affirmation" title="Toggle Loop"><i class="fa-solid fa-repeat"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="main-controls">
+                        <button id="btn-play-pause" class="play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+
+                    <div class="volume-control">
+                        <i class="fa-solid fa-music"></i>
+                        <label for="bg-volume" class="sr-only">Background Music Volume</label>
+                        <input type="range" id="bg-volume" min="0" max="1" step="0.05" value="0.3">
+                    </div>
+                </div>
+
+                <button id="btn-restart" class="secondary-btn" style="margin-top: 2rem;">
+                    <i class="fa-solid fa-rotate-left"></i> Start Over
+                </button>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
