@@ -218,4 +218,18 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 
+# AI meditation generation
+LLM_PROVIDER = os.getenv('LLM_PROVIDER', 'openai')
+LLM_API_KEY = os.getenv('LLM_API_KEY') or os.getenv('GEMINI_API_KEY') or os.getenv('OPENAI_API_KEY')
+LLM_MODEL = os.getenv('LLM_MODEL') or os.getenv('GEMINI_MODEL') or os.getenv('OPENAI_MODEL')
+LLM_MODELS = [model.strip() for model in os.getenv('LLM_MODELS', '').split(',') if model.strip()]
+LLM_TIMEOUT_SECONDS = int(os.getenv('LLM_TIMEOUT_SECONDS', '60'))
 
+# Text-to-speech generation
+TTS_PROVIDER = os.getenv('TTS_PROVIDER', 'elevenlabs')
+TTS_API_KEY = os.getenv('TTS_API_KEY') or os.getenv('ELEVEN_API_KEY') or os.getenv('ELEVENLABS_API_KEY')
+TTS_MODEL = os.getenv('TTS_MODEL', 'eleven_multilingual_v2')
+TTS_TIMEOUT_SECONDS = int(os.getenv('TTS_TIMEOUT_SECONDS', '120'))
+TTS_DEFAULT_VOICE_ID = os.getenv('TTS_DEFAULT_VOICE_ID', '')
+TTS_VOICE_ID_MAP = os.getenv('TTS_VOICE_ID_MAP', '{}')
+TTS_GENERATE_AUDIO = os.getenv('TTS_GENERATE_AUDIO', 'True') == 'True'

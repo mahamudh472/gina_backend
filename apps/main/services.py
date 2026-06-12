@@ -1,6 +1,11 @@
 from typing import Dict, Any
+import datetime
+import re
 from django.db import transaction
+from django.core.files.base import ContentFile
 from apps.main.models import Meditation, MeditationSteps, CharecterVoice, BackgroundImage, NatureSounds
+from apps.ai_service.exceptions import TTSGenerationError
+from apps.ai_service.tts import generate_step_audio, get_audio_duration
 from apps.main.utils import generate_meditation_content
 from apps.accounts.models import User
 
@@ -71,16 +76,53 @@ def create_generated_meditation(data: Dict[str, Any], user: User) -> Meditation:
         )
 
         # Create associated steps
-        for step in steps_data:
-            # Assign the character voice's main audio file to the step's audio field
-            audio_file = charecter_voice.file if charecter_voice.file else None
+        for index, step in enumerate(steps_data, start=1):
+            audio_file, measured_duration = _build_step_audio_file(
+                step=step,
+                meditation_id=meditation.id,
+                sequence=index,
+                voice_name=charecter_voice.name,
+            )
             
             MeditationSteps.objects.create(
                 meditation=meditation,
                 step_type=step["step_type"],
                 content=step["content"],
-                duration=step["duration"],
+                duration=measured_duration,
                 audio_file=audio_file
             )
 
     return meditation
+
+
+def _build_step_audio_file(
+    *,
+    step: Dict[str, Any],
+    meditation_id: int,
+    sequence: int,
+    voice_name: str,
+):
+    audio_bytes = generate_step_audio(
+        text=step["content"],
+        voice_name=voice_name,
+        tts_settings=step.get("tts_settings"),
+    )
+    if not audio_bytes:
+        raise TTSGenerationError("TTS provider returned empty audio.")
+
+    step_type = _slugify_audio_name(step["step_type"])
+    filename = f"generated/meditation-{meditation_id}-step-{sequence}-{step_type}.mp3"
+    measured_seconds = get_audio_duration(audio_bytes)
+    measured_duration = (
+        datetime.timedelta(seconds=round(measured_seconds, 3))
+        if measured_seconds
+        else None
+    )
+    if measured_duration is None:
+        raise TTSGenerationError("Could not measure generated audio duration.")
+    return ContentFile(audio_bytes, name=filename), measured_duration
+
+
+def _slugify_audio_name(value: Any) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", str(value).lower()).strip("-")
+    return slug or "audio"
