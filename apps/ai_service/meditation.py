@@ -12,25 +12,22 @@ from apps.main.models import MeditationCategory, MeditationStep
 
 logger = logging.getLogger(__name__)
 
+
+
 AI_STEP_ORDER = [
-    "greeting",
-    "breathing",
-    "body_scan",
-    "personal_reflection",
-    "suggestion",
-    "affirmation",
-    "visualization",
-    "conclusion",
+    "greeting",        
+    "body_focus",      
+    "suggestion",      
+    "affirmation",     
+    "visualization",   
 ]
 
 DJANGO_STEP_ORDER = [
-    MeditationStep.GREETING,
-    MeditationStep.PERSONAL,
-    MeditationStep.INTRODUCTION,
-    MeditationStep.SUGGESTION,
-    MeditationStep.CONFIRMATION,
-    MeditationStep.VISUALIZATION,
-    MeditationStep.CONCLUSION,
+    MeditationStep.GREETING,       
+    MeditationStep.PERSONAL,       
+    MeditationStep.SUGGESTION,     
+    MeditationStep.CONFIRMATION,   
+    MeditationStep.VISUALIZATION,  
 ]
 
 CATEGORY_LABELS = {
@@ -117,22 +114,54 @@ def _build_request_data(
     background_image_name: str,
 ) -> dict[str, Any]:
     answers = _normalize_answers(q_a)
+
     return {
         "category": category,
-        "category_label": CATEGORY_LABELS.get(category, CATEGORY_LABELS[MeditationCategory.RELAXATION]),
-        "user_name": answers.get("name") or answers.get("user_name") or answers.get("username") or "",
-        "emotion": answers.get("emotion") or answers.get("current_mood") or answers.get("feeling") or "",
-        "goal": answers.get("goal") or answers.get("focus") or answers.get("intention") or "innere Balance",
-        "avoid": answers.get("avoid") or answers.get("stress_input") or answers.get("stressors") or "",
-        "duration": _normalize_duration(answers.get("duration") or answers.get("duration_minutes")),
-        "experience": answers.get("experience") or answers.get("experience_level") or "beginner",
-        "body_tension": _normalize_list(answers.get("body_tension") or answers.get("body_tension_areas") or answers.get("body_focus")),
-        "nature_sound": answers.get("nature_sound") or nature_sound_name or "",
-        "landscape": answers.get("landscape") or answers.get("landscape_env") or background_image_name or "",
+        "category_label": CATEGORY_LABELS.get(
+            category,
+            CATEGORY_LABELS[MeditationCategory.RELAXATION]
+        ),
+        "user_name": answers.get("name")
+            or answers.get("user_name")
+            or answers.get("username")
+            or "",
+
+        "mood": answers.get("current_mood")
+            or answers.get("feeling")
+            or answers.get("emotion")
+            or "",
+
+        "stress_input": answers.get("stress_input")
+            or answers.get("stressors")
+            or answers.get("avoid")
+            or "",
+
+        "goal": answers.get("goal")
+            or answers.get("focus")
+            or answers.get("intention")
+            or "innere Balance",
+
+        "duration": _normalize_duration(
+            answers.get("duration")
+            or answers.get("duration_minutes")
+        ),
+
+        "experience": answers.get("experience")
+            or answers.get("experience_level")
+            or "beginner",
+
+        "body_focus": answers.get("body_focus")
+            or answers.get("body_tension")
+            or "",
+
+        "audio_anchor": answers.get("audio_anchor"),
+
+        "landscape_env": answers.get("landscape_env"),
+
         "voice_name": voice_name,
+
         "questionnaire_answers": answers,
     }
-
 
 def _normalize_answers(q_a: Any) -> dict[str, Any]:
     if isinstance(q_a, dict):
@@ -191,7 +220,9 @@ def _generate_with_llm(request_data: dict[str, Any]) -> dict[str, Any] | None:
 def _generate_with_openai(request_data: dict[str, Any]) -> dict[str, Any] | None:
     provider = str(getattr(settings, "LLM_PROVIDER", "openai")).lower()
     if provider != "openai":
-        raise MeditationGenerationError(f"OpenAI generator cannot handle provider '{provider}'.")
+        raise MeditationGenerationError(
+            f"OpenAI generator cannot handle provider '{provider}'."
+        )
 
     api_key = getattr(settings, "LLM_API_KEY", None)
     if not api_key:
@@ -200,24 +231,63 @@ def _generate_with_openai(request_data: dict[str, Any]) -> dict[str, Any] | None
     try:
         from openai import OpenAI
     except ImportError:
-        raise MeditationGenerationError("The openai package is not installed.")
+        raise MeditationGenerationError(
+            "The openai package is not installed."
+        )
 
     prompt = _build_prompt(request_data)
+
+    logger.info(
+        "Calling OpenAI model '%s'...",
+        getattr(settings, "LLM_MODEL", "gpt-4o-mini")
+    )
+
     try:
         response = OpenAI(api_key=api_key).chat.completions.create(
             model=getattr(settings, "LLM_MODEL", None) or "gpt-4o-mini",
             response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": "You generate valid meditation JSON only."},
-                {"role": "user", "content": prompt},
+                {
+                    "role": "system",
+                    "content": "You generate valid meditation JSON only."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                },
             ],
             timeout=getattr(settings, "LLM_TIMEOUT_SECONDS", 60),
         )
+
+        logger.info("OpenAI response received successfully.")
+
         content = response.choices[0].message.content or "{}"
+
         payload = json.loads(content)
-        return _validate_payload(payload, request_data["duration"] * 60)
+
+        logger.info(
+            "Meditation generated successfully. Title='%s', Steps=%s",
+            payload.get("title", "Untitled"),
+            len(payload.get("steps", []))
+        )
+
+        validated_payload = _validate_payload(
+            payload,
+            request_data["duration"] * 60
+        )
+
+        logger.info(
+            "Meditation payload validated successfully. Duration=%s seconds",
+            validated_payload.get("total_duration")
+        )
+
+        return validated_payload
+
     except Exception as exc:
-        raise MeditationGenerationError(f"OpenAI meditation generation failed: {exc}") from exc
+        logger.exception("OpenAI meditation generation failed")
+        raise MeditationGenerationError(
+            f"OpenAI meditation generation failed: {exc}"
+        ) from exc
 
 
 def _generate_with_gemini(request_data: dict[str, Any]) -> dict[str, Any] | None:
@@ -229,9 +299,17 @@ def _generate_with_gemini(request_data: dict[str, Any]) -> dict[str, Any] | None
     prompt = _build_prompt(request_data)
     last_error = ""
 
+    logger.info(
+        "Starting Gemini meditation generation. Models=%s",
+        model_candidates
+    )
+
     for model in model_candidates:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
         try:
+            logger.info("Calling Gemini model '%s'...", model)
+
             response = requests.post(
                 url,
                 params={"key": api_key},
@@ -243,14 +321,52 @@ def _generate_with_gemini(request_data: dict[str, Any]) -> dict[str, Any] | None
                 },
                 timeout=getattr(settings, "LLM_TIMEOUT_SECONDS", 60),
             )
+
             response.raise_for_status()
+
+            logger.info(
+                "Gemini response received successfully from model '%s'.",
+                model
+            )
+
             payload = _extract_gemini_json(response.json())
-            return _validate_payload(payload, request_data["duration"] * 60)
+
+            logger.info(
+                "Meditation generated successfully. Title='%s', Steps=%s",
+                payload.get("title", "Untitled"),
+                len(payload.get("steps", []))
+            )
+
+            validated_payload = _validate_payload(
+                payload,
+                request_data["duration"] * 60
+            )
+
+            logger.info(
+                "Meditation payload validated successfully. Duration=%s seconds",
+                validated_payload.get("total_duration")
+            )
+
+            return validated_payload
+
         except Exception as exc:
             last_error = _redact_api_key(str(exc))
-            logger.warning("Gemini meditation generation failed for model '%s': %s", model, last_error)
 
-    raise MeditationGenerationError(f"All Gemini models failed. Last error: {last_error}")
+            logger.exception(
+                "Gemini meditation generation failed for model '%s'",
+                model
+            )
+
+            logger.warning(
+                "Gemini model '%s' failed: %s",
+                model,
+                last_error
+            )
+
+    raise MeditationGenerationError(
+        f"All Gemini models failed. Last error: {last_error}"
+    )
+
 
 
 def _gemini_model_candidates() -> list[str]:
@@ -263,7 +379,7 @@ def _gemini_model_candidates() -> list[str]:
             candidates.append(cleaned_model)
     if configured_model and configured_model not in candidates:
         candidates.append(configured_model)
-    for fallback in ["gemini-3.5-flash", "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite"]:
+    for fallback in ["gemini-2.5-flash", "gemini-2.5-flash-lite"]:
         if fallback and fallback not in candidates:
             candidates.append(fallback)
     return candidates
@@ -289,26 +405,44 @@ def _build_prompt(data: dict[str, Any]) -> str:
         f"- {key}: {value}" for key, value in data["questionnaire_answers"].items()
     ) or "- Keine zusaetzlichen Antworten"
     total_duration = data["duration"] * 60
-    body_tension = ", ".join(data["body_tension"]) or "Nicht angegeben"
+    
+    body_focus = data.get("body_focus") or "Nicht angegeben"
+    audio_anchor = data.get("audio_anchor") or "Nicht angegeben"
+    landscape_env = data.get("landscape_env") or "Nicht angegeben"
 
     return f"""
-Du bist eine weltklasse Meditationslehrerin und erstellst eine hochpersonalisierte gefuehrte Meditation.
-Antworte ausschliesslich als valides JSON ohne Markdown. Schreibe die Meditation auf Deutsch.
+    Du bist ein professioneller Meditationsleiter für VISULARA.
+
+    Erstelle basierend auf den User-Inputs ein Skript für die personalisierten Teile der Meditation.
+
+    Deine Antwort MUSS ausschließlich ein valides JSON-Objekt sein.
+
+    Sprache: Deutsch.
+    Tonfall: Sanft, ruhig, empathisch, langsame Sprechweise.
+
+Schreibstil für Audio-Optimierung:
+- Schreibe in einem ruhigen, gesprächigen Meditationsstil.
+- Verwende häufig Kommas (,), Auslassungspunkte (...) und Gedankenstriche (—), um natürliche Atempausen zu schaffen.
+- Füge doppelte Zeilenumbrüche (\\n\\n) zwischen wichtigen Gedanken und Übergängen ein.
+- Verwende kürzere Sätze und eine weichere Ausdrucksweise, die für geführte Meditationen geeignet ist.
 
 Benutzerprofil:
+
 - Kategorie: {data["category_label"]}
-- Emotion: {data["emotion"] or "Nicht angegeben"}
+- Name: {data["user_name"] or "Nicht angegeben"}
+- Emotion: {data["mood"] or "Nicht angegeben"}
 - Ziel: {data["goal"]}
-- Zu loesende Belastung: {data["avoid"] or "Nicht angegeben"}
+- Zu lösende Belastung: {data["stress_input"] or "Nicht angegeben"}
+- Körperbereich: {body_focus}
+- Naturklang: {audio_anchor}
+- Visualisierungslandschaft: {landscape_env}
 - Dauer: {data["duration"]} Minuten
 - Erfahrung: {data["experience"]}
-- Koerperspannung: {body_tension}
-- Naturklang: {data["nature_sound"] or "Nicht angegeben"}
-- Visualisierungslandschaft: {data["landscape"] or "Nicht angegeben"}
 - Stimme: {data["voice_name"] or "Nicht angegeben"}
-- Name: {data["user_name"] or "Nicht angegeben"}
-- Weitere Antworten:
+
+Weitere Antworten:
 {questionnaire_lines}
+
 
 Kategoriespezifische Richtung:
 - Fokus: {guidance["focus"]}
@@ -316,11 +450,44 @@ Kategoriespezifische Richtung:
 - Affirmation: {guidance["affirmation"]}
 
 Pflichtanforderungen:
+
 1. Erstelle einzigartige Inhalte und keine statische Vorlage.
-2. Nutze genau diese Reihenfolge: {", ".join(AI_STEP_ORDER)}.
-3. Jede Section braucht step_type, content, duration, start_time und end_time.
-4. total_duration muss exakt {total_duration} Sekunden sein.
-5. Integriere Ziel, Koerper, Naturklang und Landschaft natuerlich.
+
+2. Nutze exakt diese VISULARA Slot Reihenfolge:
+   - greeting
+   - body_focus
+   - suggestion
+   - affirmation
+   - visualization
+
+3. greeting:
+   - Nutze user_name und mood.
+
+4. body_focus:
+   - Nutze body_focus.
+   - Konzentriere dich auf den gewählten Körperbereich.
+
+5. suggestion:
+   - Nutze goal.
+   - Formuliere einen kurzen, kraftvollen Satz.
+
+6. affirmation:
+   - Nutze goal.
+   - Erstelle eine kurze, wiederholbare Affirmation.
+
+7. visualization:
+   - Nutze landscape_env und audio_anchor.
+   - Führe den Nutzer in die gewählte Landschaft.
+
+8. Jede Section muss enthalten:
+   - step_type
+   - content
+   - duration
+   - start_time
+   - end_time
+
+9. total_duration muss exakt {total_duration} Sekunden sein.
+10. Integriere Ziel, Körperbereich, Naturklang und Landschaft natürlich.
 
 JSON-Form:
 {{
@@ -398,16 +565,17 @@ def _map_ai_step_to_django_step(step_type: str) -> str:
     normalized = step_type.strip().lower()
     if normalized == "greeting":
         return MeditationStep.GREETING
-    if normalized == "personal_reflection":
+
+    if normalized == "body_focus":
         return MeditationStep.PERSONAL
-    if normalized in {"breathing", "body_scan", "introduction"}:
-        return MeditationStep.INTRODUCTION
+
     if normalized == "suggestion":
         return MeditationStep.SUGGESTION
+
     if normalized in {"affirmation", "confirmation"}:
         return MeditationStep.CONFIRMATION
+
     if normalized == "visualization":
         return MeditationStep.VISUALIZATION
-    if normalized == "conclusion":
-        return MeditationStep.CONCLUSION
+   
     raise MeditationGenerationError(f"Generated meditation contains unknown step type '{step_type}'.")

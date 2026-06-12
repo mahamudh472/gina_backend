@@ -13,9 +13,9 @@ from apps.ai_service.exceptions import TTSGenerationError
 logger = logging.getLogger(__name__)
 
 DEFAULT_TTS_SETTINGS = {
-    "stability": 0.75,
-    "similarity_boost": 0.70,
-    "style": 0.35,
+    "stability": 0.45,
+    "similarity_boost": 0.80,
+    "style": 0.20,
     "use_speaker_boost": True,
 }
 
@@ -152,15 +152,32 @@ def _generate_elevenlabs_audio(
     }
 
     try:
+        logger.info(
+            "ElevenLabs request — voice: %s, stability: %.2f, style: %.2f, text length: %s chars",
+            voice_id,
+            voice_settings["stability"],
+            voice_settings["style"],
+            len(cleaned_text),
+        )
+
         response = requests.post(
             url,
             headers=headers,
             json=payload,
             timeout=getattr(settings, "TTS_TIMEOUT_SECONDS", 120),
         )
+
         response.raise_for_status()
+
+        logger.info(
+            "ElevenLabs returned %s bytes of audio",
+            len(response.content)
+        )
+
     except requests.RequestException as exc:
-        raise TTSGenerationError(f"ElevenLabs TTS generation failed: {exc}") from exc
+        raise TTSGenerationError(
+            f"ElevenLabs TTS generation failed: {exc}"
+        ) from exc
 
     if len(response.content) < 1000:
         raise TTSGenerationError(
