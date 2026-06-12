@@ -1,0 +1,165 @@
+
+I reviewed the code you uploaded. 
+
+### Currently, the system can generate **8 meditation types (categories)**
+
+From the `themes` dictionary:
+
+| Category         | Meditation Type          |
+| ---------------- | ------------------------ |
+| `RELAXATION`     | Deep Relaxation          |
+| `SELF_LOVE`      | Self Love                |
+| `FOCUS_CLARITY`  | Focus & Clarity          |
+| `GRATITUDE`      | Gratitude                |
+| `TRUST`          | Trust & Confidence       |
+| `ENERGY`         | Energy & Vitality        |
+| `TRANSFORMATION` | Transformation & Renewal |
+| `INNER_PEACE`    | Inner Peace              |
+
+If an unknown category is passed, it falls back to:
+
+| Default       |
+| ------------- |
+| Inner Balance |
+
+So technically:
+
+* **8 predefined meditation categories**
+* **1 fallback/default meditation**
+
+---
+
+### How many different voices can it generate?
+
+**Currently: Only 1 voice style.**
+
+Although the function accepts:
+
+```python
+voice_name: str = ""
+nature_sound_name: str = ""
+background_image_name: str = ""
+```
+
+these parameters are **never used** anywhere in the meditation generation.
+
+For example:
+
+```python
+generate_meditation_content(
+    category="RELAXATION",
+    voice_name="Female Calm",
+    nature_sound_name="Rain",
+)
+```
+
+and
+
+```python
+generate_meditation_content(
+    category="RELAXATION",
+    voice_name="Male Deep",
+    nature_sound_name="Ocean"
+)
+```
+
+will generate **exactly the same meditation script**.
+
+---
+
+### How personalized is it?
+
+The script can slightly personalize:
+
+✅ User name
+
+```python
+{
+   "name": "Rasel"
+}
+```
+
+Result:
+
+```text
+Welcome Rasel...
+```
+
+✅ Goal / Focus
+
+```python
+{
+   "goal": "Better Sleep"
+}
+```
+
+Result:
+
+```text
+Deep Relaxation (Focus: Better Sleep)
+```
+
+and it appends the goal into the suggestion section.
+
+---
+
+### Based on your Figma meditation app
+
+If your Figma includes:
+
+* Different narrator voices
+* Different meditation lengths
+* Different tones
+* Different soundscapes
+* Different difficulty levels
+* AI-generated personalized meditation
+
+then **this backend does NOT support those yet.**
+
+Right now it generates:
+
+```text
+Category
+    ↓
+Static Script Template
+    ↓
+7 Fixed Steps
+    ↓
+Same Duration
+    ↓
+Same Writing Style
+```
+
+---
+
+### Number of unique meditation outputs possible right now
+
+Practically:
+
+* 8 meditation categories
+* Same 7-step structure
+* Same durations
+* Same writing style
+* Optional name insertion
+* Optional focus insertion
+
+So the system currently produces **8 core meditation templates**, not hundreds or thousands of unique meditations.
+
+If your Figma requirement is a truly personalized AI meditation generator, this file is only a **static placeholder/fallback implementation**. The comments at the top indicate the developers planned to later connect it to OpenAI/Gemini:
+
+```python
+# Future:
+# 1. Construct prompt
+# 2. Call AI service
+# 3. Parse AI response
+```
+
+So at the moment:
+
+* **Meditation Categories:** 8
+* **Voice Types Used:** 0 (parameter exists but unused)
+* **Nature Sound Variations Used:** 0 (parameter exists but unused)
+* **Background Image Variations Used:** 0 (parameter exists but unused)
+* **AI Personalization:** Minimal (name + focus only)
+* **Meditation Structure:** Always 7 fixed steps
+* **Total real templates:** 8 + 1 fallback template.

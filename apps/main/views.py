@@ -17,6 +17,7 @@ from apps.main.serializers import (
     MeditationArchiveSerializer
 )
 from apps.main.services import create_generated_meditation
+from apps.ai_service.exceptions import MeditationGenerationError, TTSGenerationError
 
 class CharecterVoiceListView(generics.ListAPIView):
 
@@ -42,7 +43,13 @@ class MeditationGenerateView(APIView):
         serializer.is_valid(raise_exception=True)
         
         # Delegate generation to the service layer
-        meditation = create_generated_meditation(serializer.validated_data, user=request.user)
+        try:
+            meditation = create_generated_meditation(serializer.validated_data, user=request.user)
+        except (MeditationGenerationError, TTSGenerationError) as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         
         # Serialize the fully generated meditation with steps and return
         response_serializer = MeditationGenerationResponseSerializer(

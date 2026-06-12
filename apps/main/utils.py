@@ -1,5 +1,6 @@
 import datetime
 from typing import Dict, Any, List, Tuple
+from apps.ai_service.meditation import generate_ai_meditation_content
 from apps.main.models import MeditationCategory, MeditationStep
 
 def generate_meditation_content(
@@ -9,21 +10,14 @@ def generate_meditation_content(
     nature_sound_name: str = "",
     background_image_name: str = ""
 ) -> Tuple[str, List[Dict[str, Any]]]:
-    """
-    Generates the meditation content. Currently returns static data, 
-    but is set up with all necessary parameters to easily integrate an AI provider later.
-    
-    In the future:
-    1. Construct a prompt using category, q_a, voice_name, etc.
-    2. Call the AI service (e.g., OpenAI, Gemini).
-    3. Parse the AI response into a title and steps list.
-    """
-    # prompt = f"Create a {category} meditation. Focus on user answers: {q_a}. Voice: {voice_name}..."
-    # ai_response = ai_provider.generate_content(prompt)
-    # return parse_response(ai_response)
-    
-    # Returning static fallback data for now:
-    return _generate_static_meditation_steps(category, q_a)
+    """Generate personalized meditation content through the AI service."""
+    return generate_ai_meditation_content(
+        category=category,
+        q_a=q_a,
+        voice_name=voice_name,
+        nature_sound_name=nature_sound_name,
+        background_image_name=background_image_name,
+    )
 
 def _generate_static_meditation_steps(category: str, q_a: Any) -> Tuple[str, List[Dict[str, Any]]]:
     # Extract keywords from question answers if available
