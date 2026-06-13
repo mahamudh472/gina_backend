@@ -292,46 +292,68 @@ def _build_prompt(data: dict[str, Any]) -> str:
     body_tension = ", ".join(data["body_tension"]) or "Nicht angegeben"
 
     return f"""
-Du bist eine weltklasse Meditationslehrerin und erstellst eine hochpersonalisierte gefuehrte Meditation.
-Antworte ausschliesslich als valides JSON ohne Markdown. Schreibe die Meditation auf Deutsch.
+    Du bist eine weltklasse Meditationslehrerin und erstellst eine hochpersonalisierte gefuehrte Meditation.
+    Antworte ausschliesslich als valides JSON ohne Markdown.
 
-Benutzerprofil:
-- Kategorie: {data["category_label"]}
-- Emotion: {data["emotion"] or "Nicht angegeben"}
-- Ziel: {data["goal"]}
-- Zu loesende Belastung: {data["avoid"] or "Nicht angegeben"}
-- Dauer: {data["duration"]} Minuten
-- Erfahrung: {data["experience"]}
-- Koerperspannung: {body_tension}
-- Naturklang: {data["nature_sound"] or "Nicht angegeben"}
-- Visualisierungslandschaft: {data["landscape"] or "Nicht angegeben"}
-- Stimme: {data["voice_name"] or "Nicht angegeben"}
-- Name: {data["user_name"] or "Nicht angegeben"}
-- Weitere Antworten:
-{questionnaire_lines}
+    Sprache: Deutsch.
+    Tonfall: Sanft, ruhig, empathisch, langsame Sprechweise.
 
-Kategoriespezifische Richtung:
-- Fokus: {guidance["focus"]}
-- Visualisierung: {guidance["visualization"]}
-- Affirmation: {guidance["affirmation"]}
+    Schreibstil für Audio-Optimierung (WICHTIG für TTS Pausen):
+    - ElevenLabs reagiert stark auf Satzzeichen. Nutze diese zwingend für den natürlichen Rhythmus:
+    ,    = kurze Pause
+    .    = mittlere Pause
+    ...  = lange, nachdenkliche Pause
+    \\n\\n = Absatzpause (Atemraum)
+    - Schreibe in einem ruhigen, gesprächigen Meditationsstil mit kürzeren Sätzen.
+    - Nutze weiche Formulierungen, die für geführte Meditationen geeignet sind.
+    - Verwende Ellipsen (...) mehrfach in jeder Meditation.
+    - Verwende Gedankenstriche (—) regelmäßig für natürliche Atempausen.
+    
+    - Verwende Ellipsen (...) regelmäßig, wenn sie natürlich wirken.
+    - Verwende Gedankenstriche (—) für sanfte Übergänge zwischen Gedanken.
+    - Jede Section soll natürliche Atempausen enthalten.
+    - Vermeide lange Absätze und lange Sätze ohne Satzzeichen.
+    - Schreibe so, dass der Text angenehm vorgelesen werden kann.
+    - Jede Passage soll langsam und natürlich gesprochen werden können.
+    - Vermeide verschachtelte oder komplexe Sätze.
 
-Pflichtanforderungen:
-1. Erstelle einzigartige Inhalte und keine statische Vorlage.
-2. Nutze genau diese Reihenfolge: {", ".join(AI_STEP_ORDER)}.
-3. Jede Section braucht step_type, content, duration, start_time und end_time.
-4. total_duration muss exakt {total_duration} Sekunden sein.
-5. Integriere Ziel, Koerper, Naturklang und Landschaft natuerlich.
+    Benutzerprofil:
+    - Kategorie: {data["category_label"]}
+    - Emotion: {data["emotion"] or "Nicht angegeben"}
+    - Ziel: {data["goal"]}
+    - Zu loesende Belastung: {data["avoid"] or "Nicht angegeben"}
+    - Dauer: {data["duration"]} Minuten
+    - Erfahrung: {data["experience"]}
+    - Koerperspannung: {body_tension}
+    - Naturklang: {data["nature_sound"] or "Nicht angegeben"}
+    - Visualisierungslandschaft: {data["landscape"] or "Nicht angegeben"}
+    - Stimme: {data["voice_name"] or "Nicht angegeben"}
+    - Name: {data["user_name"] or "Nicht angegeben"}
+    - Weitere Antworten:
+    {questionnaire_lines}
 
-JSON-Form:
-{{
-  "title": "string",
-  "summary": "string",
-  "total_duration": {total_duration},
-  "steps": [
-    {{"step_type": "greeting", "content": "string", "duration": 60, "start_time": 0, "end_time": 60}}
-  ]
-}}
-"""
+    Kategoriespezifische Richtung:
+    - Fokus: {guidance["focus"]}
+    - Visualisierung: {guidance["visualization"]}
+    - Affirmation: {guidance["affirmation"]}
+
+    Pflichtanforderungen:
+    1. Erstelle einzigartige Inhalte und keine statische Vorlage.
+    2. Nutze genau diese Reihenfolge: {", ".join(AI_STEP_ORDER)}.
+    3. Jede Section braucht step_type, content, duration, start_time und end_time.
+    4. total_duration muss exakt {total_duration} Sekunden sein.
+    5. Integriere Ziel, Koerper, Naturklang und Landschaft natuerlich.
+
+    JSON-Form:
+    {{
+    "title": "string",
+    "summary": "string",
+    "total_duration": {total_duration},
+    "steps": [
+        {{"step_type": "greeting", "content": "string", "duration": 60, "start_time": 0, "end_time": 60}}
+    ]
+    }}
+    """
 
 
 def _validate_payload(payload: dict[str, Any], expected_total_duration: int) -> dict[str, Any]:

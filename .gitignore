@@ -18,6 +18,7 @@ venv/
 ENV/
 env.bak/
 env/
+myenv/
 
 # IDE & Editors
 .vscode/
