@@ -1,9 +1,14 @@
 import json
 import logging
+import os
 import re
+import shutil
 import subprocess
 import tempfile
 from typing import Any
+
+FFMPEG_CMD = shutil.which("ffmpeg") or r"C:\Users\rasel\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe"
+FFPROBE_CMD = shutil.which("ffprobe") or r"C:\Users\rasel\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffprobe.exe"
 
 import requests
 from django.conf import settings
@@ -13,9 +18,9 @@ from apps.ai_service.exceptions import TTSGenerationError
 logger = logging.getLogger(__name__)
 
 DEFAULT_TTS_SETTINGS = {
-    "stability": 0.45,
-    "similarity_boost": 0.80,
-    "style": 0.20,
+    "stability": 0.85,          # High stability removes echoes, artifacts, and random speed changes
+    "similarity_boost": 0.75,   # Higher boost locks the voice strictly to the trained speaker profile
+    "style": 0.0,               # 0.0 ensures a steady, un-dramatic, uniform reading delivery
     "use_speaker_boost": True,
 }
 
@@ -45,12 +50,14 @@ def generate_step_audio(
     if not api_key:
         raise TTSGenerationError("TTS_API_KEY is not configured.")
 
-    return _generate_elevenlabs_audio(
+    audio_bytes = _generate_elevenlabs_audio(
         text=text,
         voice_id=resolved_voice_id,
         api_key=api_key,
         tts_settings=tts_settings,
     )
+
+    return audio_bytes
 
 
 def get_audio_duration(audio_bytes: bytes) -> float | None:
@@ -65,7 +72,7 @@ def get_audio_duration(audio_bytes: bytes) -> float | None:
         try:
             result = subprocess.run(
                 [
-                    "ffprobe",
+                    FFPROBE_CMD,
                     "-v",
                     "error",
                     "-show_entries",
@@ -138,6 +145,8 @@ def _generate_elevenlabs_audio(
     tts_settings: dict[str, Any] | None,
 ) -> bytes | None:
     cleaned_text = _clean_ssml_for_elevenlabs(text)
+    cleaned_text = _normalize_meditation_text(cleaned_text)
+
     voice_settings = _normalize_tts_settings(tts_settings)
 
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
@@ -151,33 +160,39 @@ def _generate_elevenlabs_audio(
         "Content-Type": "application/json",
     }
 
-    try:
-        logger.info(
-            "ElevenLabs request — voice: %s, stability: %.2f, style: %.2f, text length: %s chars",
-            voice_id,
-            voice_settings["stability"],
-            voice_settings["style"],
-            len(cleaned_text),
-        )
+    import time
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            logger.info(
+                "ElevenLabs request — voice: %s, stability: %.2f, style: %.2f, text length: %s chars",
+                voice_id,
+                voice_settings["stability"],
+                voice_settings["style"],
+                len(cleaned_text),
+            )
 
-        response = requests.post(
-            url,
-            headers=headers,
-            json=payload,
-            timeout=getattr(settings, "TTS_TIMEOUT_SECONDS", 120),
-        )
+            response = requests.post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=getattr(settings, "TTS_TIMEOUT_SECONDS", 120),
+            )
 
-        response.raise_for_status()
+            response.raise_for_status()
 
-        logger.info(
-            "ElevenLabs returned %s bytes of audio",
-            len(response.content)
-        )
-
-    except requests.RequestException as exc:
-        raise TTSGenerationError(
-            f"ElevenLabs TTS generation failed: {exc}"
-        ) from exc
+            logger.info(
+                "ElevenLabs returned %s bytes of audio",
+                len(response.content)
+            )
+            break
+        except requests.RequestException as exc:
+            if attempt == max_retries - 1:
+                raise TTSGenerationError(
+                    f"ElevenLabs TTS generation failed after {max_retries} attempts: {exc}"
+                ) from exc
+            logger.warning("ElevenLabs connection failed (attempt %d/%d): %s. Retrying...", attempt + 1, max_retries, exc)
+            time.sleep(2 ** attempt)
 
     if len(response.content) < 1000:
         raise TTSGenerationError(
@@ -205,3 +220,36 @@ def _clean_ssml_for_elevenlabs(text: str) -> str:
     for index, tag in enumerate(break_tags):
         text = text.replace(f"__BREAK_{index}__", tag, 1)
     return text.strip()
+
+
+def _normalize_meditation_text(text: str) -> str:
+    """Force an extremely slow, uniform meditation pacing for ElevenLabs using 
+    natural punctuation syntax, avoiding invalid SSML tags.
+    """
+    import re as _re
+    
+    # 1. Strip out any accidental XML/SSML tags entirely
+    text = _re.sub(r'<[^>]+>', '', text)
+    
+    # 2. Standardize all dashes, colons, and semi-colons into clean commas
+    text = text.replace(' - ', ', ')
+    text = text.replace(' — ', ', ')
+    text = text.replace('–', ', ')
+    text = text.replace(':', ', ')
+    text = text.replace(';', ', ')
+    
+    # 3. Clean up multiple periods or spaces
+    text = _re.sub(r'\.{2,}', '.', text)
+    text = _re.sub(r'\s+', ' ', text)
+    
+    # 4. Convert commas and periods to trailing reflections.
+    # ElevenLabs treats '... ' as a natural trailing pause.
+    text = text.replace(', ', '... , ')
+    text = text.replace('. ', '... .   ')
+    text = text.replace('! ', '... .   ')
+    text = text.replace('? ', '... .   ')
+    
+    return text.strip()
+
+
+
