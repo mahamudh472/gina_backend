@@ -296,26 +296,36 @@ def _build_prompt(data: dict[str, Any]) -> str:
     Antworte ausschliesslich als valides JSON ohne Markdown.
 
     Sprache: Deutsch.
-    Tonfall: Sanft, ruhig, empathisch, langsame Sprechweise.
 
-    Schreibstil für Audio-Optimierung (WICHTIG für TTS Pausen):
-    - ElevenLabs reagiert stark auf Satzzeichen. Nutze diese zwingend für den natürlichen Rhythmus:
-    ,    = kurze Pause
-    .    = mittlere Pause
-    ...  = lange, nachdenkliche Pause
-    \\n\\n = Absatzpause (Atemraum)
-    - Schreibe in einem ruhigen, gesprächigen Meditationsstil mit kürzeren Sätzen.
-    - Nutze weiche Formulierungen, die für geführte Meditationen geeignet sind.
-    - Verwende Ellipsen (...) mehrfach in jeder Meditation.
-    - Verwende Gedankenstriche (—) regelmäßig für natürliche Atempausen.
-    
-    - Verwende Ellipsen (...) regelmäßig, wenn sie natürlich wirken.
-    - Verwende Gedankenstriche (—) für sanfte Übergänge zwischen Gedanken.
-    - Jede Section soll natürliche Atempausen enthalten.
-    - Vermeide lange Absätze und lange Sätze ohne Satzzeichen.
-    - Schreibe so, dass der Text angenehm vorgelesen werden kann.
-    - Jede Passage soll langsam und natürlich gesprochen werden können.
-    - Vermeide verschachtelte oder komplexe Sätze.
+    # KRITISCH: EINHEITLICHER SPRECHRHYTHMUS (WICHTIGSTE REGEL)
+    Die gesamte Meditation — von der ersten Silbe des Greetings bis zum letzten Wort der Conclusion —
+    MUSS wie EIN einziger, ununterbrochener, extrem langsamer Fluss klingen.
+    Es darf KEINEN Unterschied in Geschwindigkeit, Tonfall oder Energie zwischen den 8 Schritten geben.
+
+    ## Schreibmuster (IDENTISCH fuer JEDEN Schritt)
+    Schreibe in einem ruhigen, poetischen, fließenden Rhythmus.
+    - Nutze natürliche Kommas und Punkte, um Atempausen zu signalisieren.
+    - Vermeide abgehackte Halbsätze. Lass die Sätze harmonisch und beruhigend fließen.
+    - Beende jeden Satz ganz normal mit einem Punkt.
+    - Verwende KEINE Ausrufezeichen, Fragezeichen oder SSML/Code-Tags.
+
+    ## Wortdichte-Regel (KRITISCH fuer gleichmaessige Geschwindigkeit)
+    - Schreibe nur ca. 40-60 Woerter pro Minute Dauer.
+    - Ein 60-Sekunden-Schritt = maximal 60 Woerter.
+    - Weniger Text ist besser. Lass extrem viel Raum fuer Stille.
+
+    ## Tonfall (IDENTISCH fuer alle 8 Schritte)
+    - Warm, sanft, langsam, empathisch, ruhig.
+    - Alle 8 Schritte sind EIN Fluss. KEINE Stimmungswechsel. KEINE Energieaenderung.
+    - KEIN Unterschied zwischen Greeting und Breathing.
+    - KEIN Unterschied zwischen Body Scan und Affirmation.
+
+    ## Verbotene Muster
+    - KEINE langen Saetze (ueber 8-10 Woerter ohne Komma).
+    - KEINE Aufzaehlungen.
+    - KEINE rhetorischen Fragen.
+    - KEINE Ausrufezeichen.
+    - KEINE energischen Formulierungen.
 
     Benutzerprofil:
     - Kategorie: {data["category_label"]}
@@ -338,11 +348,12 @@ def _build_prompt(data: dict[str, Any]) -> str:
     - Affirmation: {guidance["affirmation"]}
 
     Pflichtanforderungen:
-    1. Erstelle einzigartige Inhalte und keine statische Vorlage.
+    1. Erstelle einzigartige, poetische Inhalte — keine statische Vorlage.
     2. Nutze genau diese Reihenfolge: {", ".join(AI_STEP_ORDER)}.
     3. Jede Section braucht step_type, content, duration, start_time und end_time.
     4. total_duration muss exakt {total_duration} Sekunden sein.
-    5. Integriere Ziel, Koerper, Naturklang und Landschaft natuerlich.
+    5. ALLE Sections muessen den IDENTISCHEN warmen, langsamen Tonfall haben.
+    6. ALLE Sections muessen die GLEICHE Wortdichte haben.
 
     JSON-Form:
     {{
