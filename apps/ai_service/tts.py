@@ -7,9 +7,6 @@ import subprocess
 import tempfile
 from typing import Any
 
-FFMPEG_CMD = shutil.which("ffmpeg") or r"C:\Users\rasel\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe"
-FFPROBE_CMD = shutil.which("ffprobe") or r"C:\Users\rasel\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffprobe.exe"
-
 import requests
 from django.conf import settings
 
@@ -18,9 +15,9 @@ from apps.ai_service.exceptions import TTSGenerationError
 logger = logging.getLogger(__name__)
 
 DEFAULT_TTS_SETTINGS = {
-    "stability": 0.85,          # High stability removes echoes, artifacts, and random speed changes
-    "similarity_boost": 0.75,   # Higher boost locks the voice strictly to the trained speaker profile
-    "style": 0.0,               # 0.0 ensures a steady, un-dramatic, uniform reading delivery
+    "stability": 0.40,        
+    "similarity_boost": 0.60, 
+    "style": 0.45,            
     "use_speaker_boost": True,
 }
 
@@ -61,42 +58,8 @@ def generate_step_audio(
 
 
 def get_audio_duration(audio_bytes: bytes) -> float | None:
-    """Return audio duration in seconds for generated audio bytes."""
-    if not audio_bytes:
-        return None
-
-    with tempfile.NamedTemporaryFile(suffix=".mp3") as audio_file:
-        audio_file.write(audio_bytes)
-        audio_file.flush()
-
-        try:
-            result = subprocess.run(
-                [
-                    FFPROBE_CMD,
-                    "-v",
-                    "error",
-                    "-show_entries",
-                    "format=duration",
-                    "-of",
-                    "default=noprint_wrappers=1:nokey=1",
-                    audio_file.name,
-                ],
-                check=True,
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-        except (subprocess.SubprocessError, FileNotFoundError) as exc:
-            logger.warning("Could not read generated audio duration with ffprobe: %s", exc)
-            return None
-
-    try:
-        duration = float(result.stdout.strip())
-    except ValueError:
-        logger.warning("ffprobe returned an invalid duration: %r", result.stdout)
-        return None
-
-    return duration if duration > 0 else None
+    # Removed ffprobe dependency. We simply return None.
+    return None
 
 
 def resolve_voice_id(voice_name: str = "") -> str:
@@ -250,6 +213,4 @@ def _normalize_meditation_text(text: str) -> str:
     text = text.replace('? ', '... .   ')
     
     return text.strip()
-
-
-
+

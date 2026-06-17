@@ -34,53 +34,53 @@ DJANGO_STEP_ORDER = [
 ]
 
 CATEGORY_LABELS = {
-    MeditationCategory.RELAXATION: "Entspannung",
-    MeditationCategory.SELF_LOVE: "Selbstliebe",
-    MeditationCategory.FOCUS_CLARITY: "Fokus und Klarheit",
-    MeditationCategory.GRATITUDE: "Dankbarkeit",
-    MeditationCategory.TRUST: "Vertrauen",
-    MeditationCategory.ENERGY: "Energie",
-    MeditationCategory.TRANSFORMATION: "Transformation",
-    MeditationCategory.INNER_PEACE: "Innerer Frieden",
+    "relaxation": "Entspannung",
+    "self_love": "Selbstliebe",
+    "focus_clarity": "Fokus und Klarheit",
+    "gratitude": "Dankbarkeit",
+    "trust": "Vertrauen",
+    "energy": "Energie",
+    "transformation": "Transformation",
+    "inner_peace": "Innerer Frieden",
 }
 
 CATEGORY_GUIDANCE = {
-    MeditationCategory.RELAXATION: {
+    "relaxation": {
         "focus": "Stressabbau, Weichheit, tiefe Ruhe und Regulation des Nervensystems",
         "visualization": "Strand, Regen, Sonnenuntergang oder warme Stille",
         "affirmation": "Ich darf loslassen. Ich bin sicher. Ruhe ist jetzt erlaubt.",
     },
-    MeditationCategory.SELF_LOVE: {
+    "self_love": {
         "focus": "Selbstmitgefuehl, Annahme, Vergebung und Wuerde",
         "visualization": "warmes Herzlicht, Blumen, sanfte Spiegel und Morgenlicht",
         "affirmation": "Ich bin genug. Ich darf freundlich mit mir sein.",
     },
-    MeditationCategory.FOCUS_CLARITY: {
+    "focus_clarity": {
         "focus": "Konzentration, Klarheit, Stabilitaet und ausgerichtete Aufmerksamkeit",
         "visualization": "Berggipfel, klarer See und frische Morgenluft",
         "affirmation": "Mein Geist wird klar. Ich kehre zu dem zurueck, was zaehlt.",
     },
-    MeditationCategory.GRATITUDE: {
+    "gratitude": {
         "focus": "Dankbarkeit, Fuelle, Freude und Wertschaetzung des Moments",
         "visualization": "goldene Wiese, offener Himmel und warmes Licht",
         "affirmation": "Dankbarkeit lebt in mir. Ich empfange diesen Moment.",
     },
-    MeditationCategory.TRUST: {
+    "trust": {
         "focus": "Sicherheit, Hingabe, Vertrauen und Loslassen von Kontrolle",
         "visualization": "starke Wurzeln, weiter Horizont und gehaltene Raeume",
         "affirmation": "Ich darf vertrauen. Ich bin getragen.",
     },
-    MeditationCategory.ENERGY: {
+    "energy": {
         "focus": "Lebendigkeit, Motivation, Kraft und sanftes Erwachen",
         "visualization": "Sonnenaufgang, goldenes Licht und klare, funkelnde Luft",
         "affirmation": "Neue Energie fliesst durch mich. Ich bin lebendig und bereit.",
     },
-    MeditationCategory.TRANSFORMATION: {
+    "transformation": {
         "focus": "Wachstum, Erneuerung, Loslassen und Neubeginn",
-        "visualization": "Schmetterling, Phonix, Fruehlingswald und neue Wege",
+        "visualization": "Schmetterling, Phoenix, Fruehlingswald und neue Wege",
         "affirmation": "Ich oeffne mich fuer Wandel. Ich wachse in mein Neues hinein.",
     },
-    MeditationCategory.INNER_PEACE: {
+    "inner_peace": {
         "focus": "Stille, Praesenz, innerer Raum und tiefer Frieden",
         "visualization": "Zen-Garten, Mondlicht, stiller See und weiter Himmel",
         "affirmation": "Stille lebt in mir. Frieden ist bereits da.",
@@ -96,7 +96,7 @@ def generate_ai_meditation_content(
     nature_sound_name: str = "",
     background_image_name: str = "",
 ) -> tuple[str, list[dict[str, Any]]]:
-    request_data = _build_request_data(
+    request_data = build_request_data(
         category=category,
         q_a=q_a,
         voice_name=voice_name,
@@ -108,18 +108,18 @@ def generate_ai_meditation_content(
     return _convert_payload_to_django_steps(payload)
 
 
-def _build_request_data(
+def build_request_data(
     *,
     category: str,
     q_a: Any,
-    voice_name: str,
-    nature_sound_name: str,
-    background_image_name: str,
+    voice_name: str = "",
+    nature_sound_name: str = "",
+    background_image_name: str = "",
 ) -> dict[str, Any]:
     answers = _normalize_answers(q_a)
     return {
         "category": category,
-        "category_label": CATEGORY_LABELS.get(category, CATEGORY_LABELS[MeditationCategory.RELAXATION]),
+        "category_label": CATEGORY_LABELS.get(category, CATEGORY_LABELS["relaxation"]),
         "user_name": answers.get("name") or answers.get("user_name") or answers.get("username") or "",
         "emotion": answers.get("emotion") or answers.get("current_mood") or answers.get("feeling") or "",
         "goal": answers.get("goal") or answers.get("focus") or answers.get("intention") or "innere Balance",
@@ -202,7 +202,7 @@ def _generate_with_openai(request_data: dict[str, Any]) -> dict[str, Any] | None
     except ImportError:
         raise MeditationGenerationError("The openai package is not installed.")
 
-    prompt = _build_prompt(request_data)
+    prompt = build_prompt(request_data)
     try:
         response = OpenAI(api_key=api_key).chat.completions.create(
             model=getattr(settings, "LLM_MODEL", None) or "gpt-4o-mini",
@@ -226,7 +226,7 @@ def _generate_with_gemini(request_data: dict[str, Any]) -> dict[str, Any] | None
         raise MeditationGenerationError("LLM_API_KEY is not configured.")
 
     model_candidates = _gemini_model_candidates()
-    prompt = _build_prompt(request_data)
+    prompt = build_prompt(request_data)
     last_error = ""
 
     for model in model_candidates:
@@ -282,9 +282,9 @@ def _extract_gemini_json(response_data: dict[str, Any]) -> dict[str, Any]:
     return json.loads(cleaned)
 
 
-def _build_prompt(data: dict[str, Any]) -> str:
+def build_prompt(data: dict[str, Any]) -> str:
     category = data["category"]
-    guidance = CATEGORY_GUIDANCE.get(category, CATEGORY_GUIDANCE[MeditationCategory.RELAXATION])
+    guidance = CATEGORY_GUIDANCE.get(category, CATEGORY_GUIDANCE["relaxation"])
     questionnaire_lines = "\n".join(
         f"- {key}: {value}" for key, value in data["questionnaire_answers"].items()
     ) or "- Keine zusaetzlichen Antworten"
@@ -365,6 +365,7 @@ def _build_prompt(data: dict[str, Any]) -> str:
     ]
     }}
     """
+
 
 
 def _validate_payload(payload: dict[str, Any], expected_total_duration: int) -> dict[str, Any]:
