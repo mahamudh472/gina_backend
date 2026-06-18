@@ -182,10 +182,8 @@ def _generate_with_llm(request_data: dict[str, Any]) -> dict[str, Any] | None:
     provider = str(getattr(settings, "LLM_PROVIDER", "openai")).lower()
     if provider == "openai":
         return _generate_with_openai(request_data)
-    if provider == "gemini":
-        return _generate_with_gemini(request_data)
 
-    raise MeditationGenerationError(f"Unsupported LLM_PROVIDER '{provider}'.")
+    raise MeditationGenerationError(f"Unsupported LLM_PROVIDER '{provider}'. Only 'openai' is supported.")
 
 
 def _generate_with_openai(request_data: dict[str, Any]) -> dict[str, Any] | None:
@@ -220,63 +218,7 @@ def _generate_with_openai(request_data: dict[str, Any]) -> dict[str, Any] | None
         raise MeditationGenerationError(f"OpenAI meditation generation failed: {exc}") from exc
 
 
-def _generate_with_gemini(request_data: dict[str, Any]) -> dict[str, Any] | None:
-    api_key = getattr(settings, "LLM_API_KEY", None)
-    if not api_key:
-        raise MeditationGenerationError("LLM_API_KEY is not configured.")
 
-    model_candidates = _gemini_model_candidates()
-    prompt = build_prompt(request_data)
-    last_error = ""
-
-    for model in model_candidates:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-        try:
-            response = requests.post(
-                url,
-                params={"key": api_key},
-                json={
-                    "contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {
-                        "response_mime_type": "application/json",
-                    },
-                },
-                timeout=getattr(settings, "LLM_TIMEOUT_SECONDS", 60),
-            )
-            response.raise_for_status()
-            payload = _extract_gemini_json(response.json())
-            return _validate_payload(payload, request_data["duration"] * 60)
-        except Exception as exc:
-            last_error = _redact_api_key(str(exc))
-            logger.warning("Gemini meditation generation failed for model '%s': %s", model, last_error)
-
-    raise MeditationGenerationError(f"All Gemini models failed. Last error: {last_error}")
-
-
-def _gemini_model_candidates() -> list[str]:
-    configured_models = list(getattr(settings, "LLM_MODELS", []) or [])
-    configured_model = str(getattr(settings, "LLM_MODEL", "") or "").strip()
-    candidates = []
-    for model in configured_models:
-        cleaned_model = str(model).strip()
-        if cleaned_model and cleaned_model not in candidates:
-            candidates.append(cleaned_model)
-    if configured_model and configured_model not in candidates:
-        candidates.append(configured_model)
-    return candidates
-
-
-def _redact_api_key(message: str) -> str:
-    return re.sub(r"([?&]key=)[^&\\s]+", r"\1[redacted]", message)
-
-
-def _extract_gemini_json(response_data: dict[str, Any]) -> dict[str, Any]:
-    raw_text = response_data["candidates"][0]["content"]["parts"][0]["text"]
-    cleaned = str(raw_text).strip()
-    if cleaned.startswith("```"):
-        cleaned = cleaned.split("\n", 1)[1]
-        cleaned = cleaned.rsplit("```", 1)[0]
-    return json.loads(cleaned)
 
 
 def build_prompt(data: dict[str, Any]) -> str:
