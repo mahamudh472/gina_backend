@@ -22,7 +22,7 @@ idna==3.11
 librt==0.8.1
 mypy==1.19.1
 mypy_extensions==1.1.0
-openai==1.14.3
+openai
 packaging==26.2
 pathspec==1.0.4
 pillow==12.2.0
