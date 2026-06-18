@@ -5,7 +5,7 @@ from django.db import transaction
 from django.core.files.base import ContentFile
 from apps.main.models import Meditation, MeditationSteps, CharecterVoice, BackgroundImage, NatureSounds
 from apps.ai_service.exceptions import TTSGenerationError
-from apps.ai_service.tts import generate_step_audio, get_audio_duration
+from apps.ai_service.tts import generate_step_audio
 from apps.main.utils import generate_meditation_content
 from apps.accounts.models import User
 
@@ -112,15 +112,13 @@ def _build_step_audio_file(
 
     step_type = _slugify_audio_name(step["step_type"])
     filename = f"generated/meditation-{meditation_id}-step-{sequence}-{step_type}.mp3"
-    measured_seconds = get_audio_duration(audio_bytes)
-    measured_duration = (
-        datetime.timedelta(seconds=round(measured_seconds, 3))
-        if measured_seconds
-        else None
-    )
-    if measured_duration is None:
-        raise TTSGenerationError("Could not measure generated audio duration.")
-    return ContentFile(audio_bytes, name=filename), measured_duration
+
+    # Use the AI-generated duration from the step data (already a timedelta)
+    duration = step.get("duration")
+    if not isinstance(duration, datetime.timedelta):
+        raise TTSGenerationError("Step is missing a valid duration.")
+
+    return ContentFile(audio_bytes, name=filename), duration
 
 
 def _slugify_audio_name(value: Any) -> str:
