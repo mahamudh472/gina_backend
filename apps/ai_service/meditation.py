@@ -263,9 +263,6 @@ def _gemini_model_candidates() -> list[str]:
             candidates.append(cleaned_model)
     if configured_model and configured_model not in candidates:
         candidates.append(configured_model)
-    for fallback in ["gemini-3.5-flash", "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite"]:
-        if fallback and fallback not in candidates:
-            candidates.append(fallback)
     return candidates
 
 
