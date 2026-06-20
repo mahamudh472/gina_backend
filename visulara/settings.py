@@ -104,7 +104,7 @@ ROOT_URLCONF = 'visulara.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -233,3 +233,5 @@ TTS_TIMEOUT_SECONDS = int(os.getenv('TTS_TIMEOUT_SECONDS', '120'))
 TTS_DEFAULT_VOICE_ID = os.getenv('TTS_DEFAULT_VOICE_ID', '')
 TTS_VOICE_ID_MAP = os.getenv('TTS_VOICE_ID_MAP', '{}')
 TTS_GENERATE_AUDIO = os.getenv('TTS_GENERATE_AUDIO', 'True') == 'True'
+
+from .unfold_conf import UNFOLD

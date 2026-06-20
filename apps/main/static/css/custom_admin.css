@@ -1,0 +1,534 @@
+/* VISULARA Admin: practical polish for Django Unfold. */
+
+:root {
+    --visulara-surface: rgba(255, 255, 255, 0.045);
+    --visulara-surface-strong: rgba(255, 255, 255, 0.075);
+    --visulara-border: rgba(255, 255, 255, 0.105);
+    --visulara-accent: #d6a93b;
+    --visulara-accent-soft: rgba(214, 169, 59, 0.18);
+}
+
+html {
+    background: #111827;
+}
+
+body,
+.font-sans {
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    letter-spacing: 0 !important;
+}
+
+h1,
+h2,
+h3 {
+    font-family: inherit !important;
+    font-weight: 700 !important;
+    letter-spacing: 0 !important;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease !important;
+}
+
+::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.45);
+    border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(214, 169, 59, 0.7);
+}
+
+* {
+    scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+    scrollbar-width: thin;
+}
+
+#nav-sidebar-inner {
+    border-right: 1px solid var(--visulara-border);
+}
+
+#nav-sidebar-inner img {
+    height: 104px !important;
+    max-width: 104px;
+    object-fit: contain;
+}
+
+#nav-sidebar-inner > div:first-child {
+    min-height: 7.5rem;
+}
+
+#nav-sidebar-inner .text-important {
+    font-size: 1.05rem !important;
+    font-weight: 800 !important;
+}
+
+#nav-sidebar-inner .text-subtle {
+    font-size: 0.82rem !important;
+}
+
+#nav-sidebar-inner a {
+    border-radius: 8px !important;
+}
+
+#nav-sidebar-inner a:hover {
+    background: var(--visulara-surface-strong) !important;
+}
+
+#nav-sidebar-inner a[class*="bg-primary"],
+#nav-sidebar-inner a[aria-current="page"] {
+    box-shadow: inset 3px 0 0 var(--visulara-accent);
+}
+
+input[type="search"],
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+input[type="url"],
+select,
+textarea {
+    border-radius: 8px !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--visulara-accent) !important;
+    box-shadow: 0 0 0 3px var(--visulara-accent-soft) !important;
+    outline: none !important;
+}
+
+textarea {
+    min-height: 9rem;
+}
+
+table {
+    font-size: 0.875rem;
+}
+
+thead th {
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+    text-transform: uppercase;
+}
+
+tbody tr:hover {
+    background: rgba(214, 169, 59, 0.055) !important;
+}
+
+td,
+th {
+    vertical-align: middle !important;
+}
+
+.field-created_at,
+.field-updated_at,
+.field-current_period_end,
+.field-last_login,
+.field-joined_at {
+    white-space: nowrap;
+}
+
+.bg-primary-600,
+[type="submit"] {
+    font-weight: 700 !important;
+}
+
+.bg-primary-600:hover,
+[type="submit"]:hover {
+    box-shadow: 0 10px 30px rgba(214, 169, 59, 0.18) !important;
+}
+
+.messagelist,
+[role="alert"] {
+    border-radius: 8px !important;
+}
+
+#login-form,
+form[action*="login"] {
+    border: 1px solid var(--visulara-border);
+    border-radius: 12px !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+}
+
+@media (max-width: 767px) {
+    table {
+        font-size: 0.8125rem;
+    }
+
+    textarea {
+        min-height: 7rem;
+    }
+}
+
+.vis-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.vis-dashboard__hero {
+    align-items: flex-start;
+    background: linear-gradient(135deg, rgba(214, 169, 59, 0.14), rgba(15, 23, 42, 0.72));
+    border: 1px solid var(--visulara-border);
+    border-radius: 10px;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    overflow: hidden;
+    padding: 1.25rem;
+}
+
+.vis-dashboard__hero h1 {
+    color: rgb(248, 250, 252);
+    font-size: clamp(1.9rem, 2.8vw, 2.65rem);
+    line-height: 1.1;
+    margin: 0.1rem 0 0.35rem;
+}
+
+.vis-dashboard__eyebrow,
+.vis-dashboard__subtle,
+.vis-stat-card__label,
+.vis-stat-card__meta,
+.vis-panel__header p,
+.vis-table-list small,
+.vis-user-list small,
+.vis-progress-list small,
+.vis-mini-stats span {
+    color: rgb(148, 163, 184);
+}
+
+.vis-dashboard__eyebrow {
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.08em !important;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.vis-dashboard__subtle {
+    font-size: 1rem;
+    margin: 0;
+    max-width: 42rem;
+}
+
+.vis-dashboard__timestamp {
+    align-items: center;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid var(--visulara-border);
+    border-radius: 999px;
+    color: rgb(226, 232, 240);
+    display: inline-flex;
+    font-size: 0.9rem;
+    font-weight: 700;
+    gap: 0.45rem;
+    padding: 0.45rem 0.7rem;
+    white-space: nowrap;
+}
+
+.vis-dashboard__timestamp .material-symbols-outlined {
+    color: var(--visulara-accent);
+    font-size: 1rem;
+}
+
+.vis-dashboard__stats {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.vis-stat-card,
+.vis-panel {
+    background: rgba(15, 23, 42, 0.74);
+    border: 1px solid var(--visulara-border);
+    border-radius: 10px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
+}
+
+.vis-stat-card {
+    display: grid;
+    gap: 0.35rem;
+    min-height: 10rem;
+    padding: 1.15rem;
+    position: relative;
+}
+
+.vis-stat-card:hover,
+.vis-health-list a:hover,
+.vis-table-list__row:hover,
+.vis-user-list a:hover {
+    border-color: rgba(214, 169, 59, 0.5);
+    transform: translateY(-1px);
+}
+
+.vis-stat-card__icon {
+    color: var(--visulara-accent);
+    font-size: 1.55rem;
+}
+
+.vis-stat-card strong {
+    color: rgb(248, 250, 252);
+    font-size: 2.45rem;
+    line-height: 1;
+}
+
+.vis-stat-card__label {
+    font-size: 0.86rem;
+    font-weight: 800;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase;
+}
+
+.vis-stat-card__meta {
+    font-size: 0.92rem;
+}
+
+.vis-dashboard__grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.vis-panel {
+    min-width: 0;
+    padding: 1rem;
+}
+
+.vis-panel--wide {
+    grid-column: span 2;
+}
+
+.vis-panel__header {
+    align-items: flex-start;
+    border-bottom: 1px solid var(--visulara-border);
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin: -0.1rem 0 0.85rem;
+    padding-bottom: 0.8rem;
+}
+
+.vis-panel__header h2 {
+    color: rgb(248, 250, 252);
+    font-size: 1.14rem;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.vis-panel__header p {
+    font-size: 0.9rem;
+    margin: 0.2rem 0 0;
+}
+
+.vis-panel__header a {
+    color: var(--visulara-accent);
+    font-size: 0.9rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.vis-table-list,
+.vis-user-list,
+.vis-health-list,
+.vis-progress-list,
+.vis-mini-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.vis-table-list__row,
+.vis-user-list a,
+.vis-health-list a {
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    display: grid;
+    gap: 0.75rem;
+    min-height: 3.2rem;
+    padding: 0.65rem;
+}
+
+.vis-table-list__row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.vis-table-list strong,
+.vis-user-list strong,
+.vis-health-list span,
+.vis-progress-list strong {
+    color: rgb(226, 232, 240);
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vis-table-list strong,
+.vis-user-list strong,
+.vis-health-list span,
+.vis-mini-stats strong,
+.vis-progress-list strong {
+    font-size: 0.98rem;
+}
+
+.vis-table-list small,
+.vis-user-list small,
+.vis-progress-list small,
+.vis-mini-stats span {
+    font-size: 0.86rem;
+}
+
+.vis-table-list time,
+.vis-user-list time {
+    color: rgb(148, 163, 184);
+    font-size: 0.86rem;
+    white-space: nowrap;
+}
+
+.vis-pill {
+    background: rgba(214, 169, 59, 0.16);
+    border-radius: 999px;
+    color: rgb(245, 208, 100);
+    display: inline-flex;
+    font-size: 0.8rem;
+    font-style: normal;
+    font-weight: 800;
+    line-height: 1;
+    padding: 0.4rem 0.55rem;
+    white-space: nowrap;
+}
+
+.vis-pill--success {
+    background: rgba(34, 197, 94, 0.16);
+    color: rgb(134, 239, 172);
+}
+
+.vis-pill--danger {
+    background: rgba(239, 68, 68, 0.16);
+    color: rgb(252, 165, 165);
+}
+
+.vis-mini-stats div,
+.vis-health-list a {
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.vis-mini-stats div {
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem;
+}
+
+.vis-mini-stats strong,
+.vis-health-list strong {
+    color: rgb(248, 250, 252);
+    font-size: 1.05rem;
+}
+
+.vis-health-list a {
+    display: flex;
+    justify-content: space-between;
+}
+
+.vis-progress-list > div {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.vis-progress-list span {
+    align-items: center;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+}
+
+.vis-progress {
+    background: rgba(148, 163, 184, 0.16);
+    border-radius: 999px;
+    height: 0.5rem;
+    overflow: hidden;
+}
+
+.vis-progress i {
+    background: linear-gradient(90deg, #d6a93b, #f5d064);
+    border-radius: inherit;
+    display: block;
+    height: 100%;
+}
+
+.vis-progress--blue i {
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+}
+
+.vis-user-list a {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.vis-avatar {
+    align-items: center;
+    background: rgba(214, 169, 59, 0.16);
+    border: 1px solid rgba(214, 169, 59, 0.24);
+    border-radius: 999px;
+    color: rgb(245, 208, 100);
+    display: inline-flex;
+    font-weight: 800;
+    height: 2.25rem;
+    justify-content: center;
+    width: 2.25rem;
+}
+
+.vis-empty {
+    color: rgb(148, 163, 184);
+    margin: 0;
+    padding: 0.75rem 0;
+}
+
+@media (max-width: 1180px) {
+    .vis-dashboard__stats,
+    .vis-dashboard__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .vis-panel--wide {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 767px) {
+    .vis-dashboard__hero,
+    .vis-panel__header {
+        flex-direction: column;
+    }
+
+    .vis-dashboard__stats,
+    .vis-dashboard__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vis-panel--wide {
+        grid-column: auto;
+    }
+
+    .vis-table-list__row,
+    .vis-user-list a {
+        align-items: flex-start;
+        grid-template-columns: 1fr;
+    }
+}

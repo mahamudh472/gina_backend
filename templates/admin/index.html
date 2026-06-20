@@ -1,0 +1,187 @@
+{% extends 'admin/base.html' %}
+
+{% load i18n %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+    {% include "unfold/helpers/site_branding.html" %}
+{% endblock %}
+
+{% block content %}
+    <div class="vis-dashboard">
+        <div class="vis-dashboard__hero">
+            <div>
+                <p class="vis-dashboard__eyebrow">Admin overview</p>
+                <h1>VISULARA Operations</h1>
+                <p class="vis-dashboard__subtle">Live pulse for customers, generated meditations, subscriptions, and content assets.</p>
+            </div>
+
+            <div class="vis-dashboard__timestamp">
+                <span class="material-symbols-outlined">schedule</span>
+                {{ dashboard.generated_at }}
+            </div>
+        </div>
+
+        <div class="vis-dashboard__stats">
+            {% for stat in dashboard.stats %}
+                <a class="vis-stat-card" href="{{ stat.href }}">
+                    <span class="material-symbols-outlined vis-stat-card__icon">{{ stat.icon }}</span>
+                    <span class="vis-stat-card__label">{{ stat.label }}</span>
+                    <strong>{{ stat.value }}</strong>
+                    <span class="vis-stat-card__meta">{{ stat.meta }}</span>
+                </a>
+            {% endfor %}
+        </div>
+
+        <div class="vis-dashboard__grid">
+            <section class="vis-panel vis-panel--wide">
+                <div class="vis-panel__header">
+                    <div>
+                        <h2>Recent meditations</h2>
+                        <p>Newest generated sessions</p>
+                    </div>
+                    <a href="{% url 'admin:main_meditation_changelist' %}">View all</a>
+                </div>
+
+                <div class="vis-table-list">
+                    {% for meditation in dashboard.recent_meditations %}
+                        <a class="vis-table-list__row" href="{{ meditation.href }}">
+                            <span>
+                                <strong>{{ meditation.title }}</strong>
+                                <small>{{ meditation.user }}</small>
+                            </span>
+                            <span class="vis-pill">{{ meditation.category }}</span>
+                            <time>{{ meditation.created }}</time>
+                        </a>
+                    {% empty %}
+                        <p class="vis-empty">No meditations yet.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="vis-panel">
+                <div class="vis-panel__header">
+                    <div>
+                        <h2>30 day activity</h2>
+                        <p>Fresh usage signals</p>
+                    </div>
+                </div>
+
+                <div class="vis-mini-stats">
+                    <div>
+                        <span>New users</span>
+                        <strong>{{ dashboard.activity_window.new_users }}</strong>
+                    </div>
+                    <div>
+                        <span>New meditations</span>
+                        <strong>{{ dashboard.activity_window.new_meditations }}</strong>
+                    </div>
+                    <div>
+                        <span>Active subscriptions</span>
+                        <strong>{{ dashboard.activity_window.active_or_trialing }}</strong>
+                    </div>
+                </div>
+            </section>
+
+            <section class="vis-panel">
+                <div class="vis-panel__header">
+                    <div>
+                        <h2>Content health</h2>
+                        <p>Active assets by library</p>
+                    </div>
+                </div>
+
+                <div class="vis-health-list">
+                    {% for item in dashboard.content_health %}
+                        <a href="{{ item.href }}">
+                            <span>{{ item.label }}</span>
+                            <strong>{{ item.active }} / {{ item.total }}</strong>
+                        </a>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="vis-panel">
+                <div class="vis-panel__header">
+                    <div>
+                        <h2>Categories</h2>
+                        <p>Meditation mix</p>
+                    </div>
+                </div>
+
+                <div class="vis-progress-list">
+                    {% for item in dashboard.categories %}
+                        <div>
+                            <span>
+                                <strong>{{ item.label }}</strong>
+                                <small>{{ item.total }}</small>
+                            </span>
+                            <div class="vis-progress">
+                                <i style="width: {{ item.percent }}%;"></i>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="vis-empty">No category data yet.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="vis-panel">
+                <div class="vis-panel__header">
+                    <div>
+                        <h2>Subscriptions</h2>
+                        <p>Status distribution</p>
+                    </div>
+                </div>
+
+                <div class="vis-progress-list">
+                    {% for item in dashboard.subscriptions %}
+                        <div>
+                            <span>
+                                <strong>{{ item.label }}</strong>
+                                <small>{{ item.total }}</small>
+                            </span>
+                            <div class="vis-progress vis-progress--blue">
+                                <i style="width: {{ item.percent }}%;"></i>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="vis-empty">No subscription data yet.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="vis-panel vis-panel--wide">
+                <div class="vis-panel__header">
+                    <div>
+                        <h2>Newest users</h2>
+                        <p>Recently joined accounts</p>
+                    </div>
+                    <a href="{% url 'admin:accounts_user_changelist' %}">View all</a>
+                </div>
+
+                <div class="vis-user-list">
+                    {% for user in dashboard.recent_users %}
+                        <a href="{{ user.href }}">
+                            <span class="vis-avatar">{{ user.name|first|upper }}</span>
+                            <span>
+                                <strong>{{ user.name }}</strong>
+                                <small>{{ user.email }}</small>
+                            </span>
+                            {% if user.active %}
+                                <em class="vis-pill vis-pill--success">Active</em>
+                            {% else %}
+                                <em class="vis-pill vis-pill--danger">Inactive</em>
+                            {% endif %}
+                            <time>{{ user.joined }}</time>
+                        </a>
+                    {% empty %}
+                        <p class="vis-empty">No users yet.</p>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+    </div>
+{% endblock %}
