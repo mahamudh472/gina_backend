@@ -136,6 +136,17 @@ UNFOLD = {
                     },
                 ],
             },
+            {
+                "title": "Settings",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "TTS Settings",
+                        "icon": "settings",
+                        "link": "/admin/ai_service/ttssettings/",
+                    },
+                ],
+            },
         ],
     },
 }

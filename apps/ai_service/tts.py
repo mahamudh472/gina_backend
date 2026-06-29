@@ -165,7 +165,20 @@ def _generate_elevenlabs_audio(
 
 
 def _normalize_tts_settings(tts_settings: dict[str, Any] | None) -> dict[str, Any]:
-    normalized = dict(DEFAULT_TTS_SETTINGS)
+    try:
+        from apps.ai_service.models import TTSSettings
+        db_settings = TTSSettings.get_settings()
+        default_settings = {
+            "stability": db_settings.stability,
+            "similarity_boost": db_settings.similarity_boost,
+            "style": db_settings.style,
+            "use_speaker_boost": db_settings.use_speaker_boost,
+        }
+    except Exception as e:
+        logger.warning("Could not fetch dynamic TTS settings: %s. Using hardcoded defaults.", e)
+        default_settings = DEFAULT_TTS_SETTINGS
+
+    normalized = dict(default_settings)
     if tts_settings:
         for key in ("stability", "similarity_boost", "style"):
             if key in tts_settings:

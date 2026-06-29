@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     'apps.accounts',
     'apps.main',
     'apps.finance',
+    'apps.ai_service',
 
     'rest_framework',
     'rest_framework_simplejwt',
