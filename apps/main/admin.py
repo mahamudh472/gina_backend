@@ -1,11 +1,32 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import display
+from unfold.widgets import UnfoldAdminFileFieldWidget
 
 from .models import CharecterVoice, NatureSounds, BackgroundImage, Meditation, MeditationSteps, Music
 
 
-class CharacterVoiceAdmin(ModelAdmin):
+class UnfoldAdminAudioFileWidget(UnfoldAdminFileFieldWidget):
+    def render(self, name, value, attrs=None, renderer=None):
+        html = super().render(name, value, attrs, renderer)
+        if value and hasattr(value, 'url'):
+            audio_html = format_html(
+                '<div style="margin-top: 8px;"><audio src="{}" controls style="max-width: 100%; height: 36px;"></audio></div>',
+                value.url
+            )
+            return format_html('{}{}', html, audio_html)
+        return html
+
+
+class AudioAdminMixin:
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name in ['file', 'audio_file']:
+            kwargs['widget'] = UnfoldAdminAudioFileWidget
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+
+class CharacterVoiceAdmin(AudioAdminMixin, ModelAdmin):
     list_display = ['name', 'short_description', 'tags', 'active_status', 'created_at']
     list_filter = ['is_active']
     search_fields = ['name', 'short_description', 'tags']
@@ -30,7 +51,7 @@ class CharacterVoiceAdmin(ModelAdmin):
         return obj.is_active, 'Active' if obj.is_active else 'Inactive'
 
 
-class NatureSoundsAdmin(ModelAdmin):
+class NatureSoundsAdmin(AudioAdminMixin, ModelAdmin):
     list_display = ['name', 'active_status', 'created_at', 'updated_at']
     list_filter = ['is_active']
     search_fields = ['name']
@@ -74,7 +95,7 @@ class BackgroundImageAdmin(ModelAdmin):
         return obj.is_active, 'Active' if obj.is_active else 'Inactive'
 
 
-class MeditationStepsInline(TabularInline):
+class MeditationStepsInline(AudioAdminMixin, TabularInline):
     model = MeditationSteps
     extra = 0
     fields = ['step_type', 'content', 'duration', 'audio_file', 'created_at']
@@ -120,7 +141,7 @@ class MeditationAdmin(ModelAdmin):
             return 0
         return obj.steps.count()
 
-class MusicAdmin(ModelAdmin):
+class MusicAdmin(AudioAdminMixin, ModelAdmin):
     list_display = ['name', 'category', 'active_status', 'created_at', 'updated_at']
     list_filter = ['is_active', 'category']
     search_fields = ['name', 'category']
