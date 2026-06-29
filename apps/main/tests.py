@@ -12,7 +12,8 @@ from apps.main.models import (
     Meditation, 
     MeditationSteps, 
     MeditationCategory,
-    MeditationStep
+    MeditationStep,
+    Music
 )
 
 User = get_user_model()
@@ -46,6 +47,21 @@ class MeditationGenerationTests(APITestCase):
         )
 
         self.url = reverse('meditation-generate')
+
+        # Mock the external AI service calls to make tests hermetic
+        from unittest.mock import patch
+        from apps.main.utils import _generate_static_meditation_steps
+
+        def mock_generate_content_wrapper(category, q_a, **kwargs):
+            return _generate_static_meditation_steps(category, q_a)
+
+        self.mock_generate_content = patch('apps.main.services.generate_meditation_content').start()
+        self.mock_generate_content.side_effect = mock_generate_content_wrapper
+
+        self.mock_generate_audio = patch('apps.main.services.generate_step_audio').start()
+        self.mock_generate_audio.return_value = b"dummy audio content"
+
+        self.addCleanup(patch.stopall)
 
     def test_generate_meditation_unauthenticated(self):
         # Unauthenticated request should fail with 401
@@ -209,3 +225,122 @@ class MeditationGenerationTests(APITestCase):
         expected_keys = {'id', 'banner_url', 'category', 'category_name', 'created_at', 'total_duration'}
         self.assertEqual(set(results[0].keys()), expected_keys)
         self.assertEqual(results[0]['category_name'], "Energie") # med2 is first because of order_by('-created_at')
+
+    def test_single_active_music_per_category(self):
+        # Create first active music track in relaxation category
+        music1 = Music.objects.create(
+            name="Relax Track 1",
+            file=SimpleUploadedFile("track1.mp3", b"content", content_type="audio/mpeg"),
+            category=MeditationCategory.RELAXATION,
+            is_active=True
+        )
+        self.assertTrue(music1.is_active)
+
+        # Create second active music track in relaxation category
+        music2 = Music.objects.create(
+            name="Relax Track 2",
+            file=SimpleUploadedFile("track2.mp3", b"content", content_type="audio/mpeg"),
+            category=MeditationCategory.RELAXATION,
+            is_active=True
+        )
+        # Fetch fresh instances from DB
+        music1.refresh_from_db()
+        music2.refresh_from_db()
+
+        # Relax Track 1 should now be inactive, Relax Track 2 should be active
+        self.assertFalse(music1.is_active)
+        self.assertTrue(music2.is_active)
+
+        # Create active music in different category (e.g. self_love)
+        music3 = Music.objects.create(
+            name="Self Love Track 1",
+            file=SimpleUploadedFile("track3.mp3", b"content", content_type="audio/mpeg"),
+            category=MeditationCategory.SELF_LOVE,
+            is_active=True
+        )
+        music2.refresh_from_db()
+        music3.refresh_from_db()
+
+        # Both track 2 and track 3 should be active because categories are different
+        self.assertTrue(music2.is_active)
+        self.assertTrue(music3.is_active)
+
+        # Toggle music1 back to active
+        music1.is_active = True
+        music1.save()
+
+        music1.refresh_from_db()
+        music2.refresh_from_db()
+        self.assertTrue(music1.is_active)
+        self.assertFalse(music2.is_active)
+
+    def test_generate_meditation_auto_selects_active_music(self):
+        self.client.force_authenticate(user=self.user)
+
+        # Create active music for relaxation
+        music = Music.objects.create(
+            name="Active Relaxation Music",
+            file=SimpleUploadedFile("music.mp3", b"content", content_type="audio/mpeg"),
+            category=MeditationCategory.RELAXATION,
+            is_active=True
+        )
+
+        data = {
+            "category": "relaxation",
+            "charecter_voice_id": self.character_voice.id,
+            "experience_question_answers": {"name": "Anna", "goal": "stress release"},
+            "nature_sound_name": "Ocean Waves",
+            "background_image_id": self.background_image.id
+        }
+
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Retrieve detail and verify the active category music is in the payload
+        meditation_id = response.data['id']
+        detail_url = reverse('meditation-detail', args=[meditation_id])
+        detail_response = self.client.get(detail_url)
+        self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
+        
+        self.assertIsNotNone(detail_response.data['music'])
+        self.assertEqual(detail_response.data['music']['id'], music.id)
+
+    def test_get_meditation_detail_with_music_and_null_music(self):
+        self.client.force_authenticate(user=self.user)
+
+        # 1. Meditation with active music for its category (RELAXATION)
+        music = Music.objects.create(
+            name="Ambient Ocean",
+            file=SimpleUploadedFile("ambient.mp3", b"content", content_type="audio/mpeg"),
+            category=MeditationCategory.RELAXATION,
+            is_active=True
+        )
+        meditation_with_music = Meditation.objects.create(
+            user=self.user,
+            title="Meditation With Music",
+            charecter_voice=self.character_voice,
+            category=MeditationCategory.RELAXATION,
+        )
+        detail_url = reverse('meditation-detail', args=[meditation_with_music.pk])
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Verify music block in detail response
+        self.assertIsNotNone(response.data['music'])
+        self.assertEqual(response.data['music']['id'], music.id)
+        self.assertEqual(response.data['music']['name'], "Ambient Ocean")
+        self.assertIn("ambient", response.data['music']['file'])
+        self.assertTrue(response.data['music']['file'].endswith(".mp3"))
+
+        # 2. Meditation with category (ENERGY) that has no active music
+        meditation_no_music = Meditation.objects.create(
+            user=self.user,
+            title="Meditation Without Music",
+            charecter_voice=self.character_voice,
+            category=MeditationCategory.ENERGY,
+        )
+        detail_url = reverse('meditation-detail', args=[meditation_no_music.pk])
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data['music'])
+

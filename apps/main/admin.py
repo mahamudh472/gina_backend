@@ -2,7 +2,7 @@ from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import display
 
-from .models import CharecterVoice, NatureSounds, BackgroundImage, Meditation, MeditationSteps
+from .models import CharecterVoice, NatureSounds, BackgroundImage, Meditation, MeditationSteps, Music
 
 
 class CharacterVoiceAdmin(ModelAdmin):
@@ -17,7 +17,7 @@ class CharacterVoiceAdmin(ModelAdmin):
             'fields': ('name', 'short_description', 'tags', 'avatar_url', 'is_active'),
         }),
         ('Audio', {
-            'fields': ('file',),
+            'fields': ('file', 'elevenlabs_voice_id'),
         }),
         ('Timestamps', {
             'classes': ('collapse',),
@@ -120,8 +120,30 @@ class MeditationAdmin(ModelAdmin):
             return 0
         return obj.steps.count()
 
+class MusicAdmin(ModelAdmin):
+    list_display = ['name', 'category', 'active_status', 'created_at', 'updated_at']
+    list_filter = ['is_active', 'category']
+    search_fields = ['name', 'category']
+    ordering = ['-created_at']
+    readonly_fields = ['created_at', 'updated_at']
+    list_per_page = 25
+    fieldsets = (
+        ('Music', {
+            'fields': ('name', 'file', 'category', 'is_active'),
+        }),
+        ('Timestamps', {
+            'classes': ('collapse',),
+            'fields': ('created_at', 'updated_at'),
+        }),
+    )
+
+    @display(description='Status', label={True: 'success', False: 'danger'})
+    def active_status(self, obj):
+        return obj.is_active, 'Active' if obj.is_active else 'Inactive'
+
 
 admin.site.register(CharecterVoice, CharacterVoiceAdmin)
 admin.site.register(NatureSounds, NatureSoundsAdmin)
 admin.site.register(BackgroundImage, BackgroundImageAdmin)
 admin.site.register(Meditation, MeditationAdmin)
+admin.site.register(Music, MusicAdmin)

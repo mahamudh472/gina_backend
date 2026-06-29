@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.main.models import CharecterVoice, NatureSounds, BackgroundImage, Meditation, MeditationSteps, MeditationCategory
+from apps.main.models import CharecterVoice, NatureSounds, BackgroundImage, Meditation, MeditationSteps, MeditationCategory, Music
 
 
 class CharecterVoiceSerializer(serializers.ModelSerializer):
@@ -16,6 +16,12 @@ class BackgroundImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = BackgroundImage
         fields = ['id','name', 'file']
+
+class MusicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Music
+        fields = ['id', 'name', 'file']
+
 
 class MeditationStepsSerializer(serializers.ModelSerializer):
     duration_percentage = serializers.SerializerMethodField()
@@ -38,6 +44,7 @@ class MeditationSerializer(serializers.ModelSerializer):
     charecter_voice = CharecterVoiceSerializer(read_only=True)
     nature_sound = NatureSoundsSerializer(read_only=True)
     background_image = BackgroundImageSerializer(read_only=True)
+    music = serializers.SerializerMethodField()
     total_duration = serializers.SerializerMethodField()
     banner_url = serializers.SerializerMethodField()
 
@@ -51,13 +58,19 @@ class MeditationSerializer(serializers.ModelSerializer):
         model = Meditation
         fields = [
             'id', 'title', 'banner_url', 'background_image', 'charecter_voice',
-            'nature_sound', 'experience_question_answer', 'category', 'created_at',
+            'nature_sound', 'music', 'experience_question_answer', 'category', 'created_at',
             'steps', 'total_duration'
         ]
 
     def get_total_duration(self, obj):
         duration = obj.total_duration
         return duration.total_seconds() if duration else 0
+
+    def get_music(self, obj):
+        active_music = Music.objects.filter(category=obj.category, is_active=True).first()
+        if active_music:
+            return MusicSerializer(active_music, context=self.context).data
+        return None
 
 class MeditationArchiveSerializer(serializers.ModelSerializer):
     total_duration = serializers.SerializerMethodField()

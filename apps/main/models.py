@@ -9,6 +9,8 @@ class CharecterVoice(models.Model):
     short_description = models.CharField(max_length=512)
     tags = models.CharField(max_length=255, blank=True)
     file = models.FileField(upload_to='uploads/audio')
+    elevenlabs_voice_id = models.CharField(max_length=255, blank=True, null=True)
+
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -93,3 +95,20 @@ class MeditationSteps(models.Model):
 
     def __str__(self):
         return f"{self.meditation.title} - {self.step_type}"
+
+class Music(models.Model):
+    name = models.CharField(max_length=100)
+    file = models.FileField(upload_to='uploads/audio')
+    category = models.CharField(max_length=100, blank=True, choices=MeditationCategory.choices)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if self.is_active and self.category:
+            Music.objects.filter(category=self.category, is_active=True).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+

@@ -103,6 +103,11 @@ UNFOLD = {
                         "icon": "image",
                         "link": "/admin/main/backgroundimage/",
                     },
+                    {
+                        "title": "Music",
+                        "icon": "music_note",
+                        "link": "/admin/main/music/",
+                    },
                 ],
             },
             {
