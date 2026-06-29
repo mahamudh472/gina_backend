@@ -66,3 +66,56 @@ class TTSSettingsTests(TestCase):
         self.assertEqual(normalized["similarity_boost"], 0.85)
         self.assertEqual(normalized["style"], 0.95)
         self.assertEqual(normalized["use_speaker_boost"], True)
+
+
+from unittest.mock import patch
+from django.test import override_settings
+from apps.ai_service.tts import generate_step_audio
+
+class TTSGenerationTests(TestCase):
+    @patch("apps.ai_service.tts._generate_elevenlabs_audio")
+    @override_settings(
+        TTS_GENERATE_AUDIO=True,
+        TTS_PROVIDER="elevenlabs",
+        TTS_API_KEY="test-api-key",
+        TTS_DEFAULT_VOICE_ID="default-voice-id-env",
+        TTS_VOICE_ID_MAP='{"Aura": "aura-voice-id-env"}'
+    )
+    def test_generate_step_audio_resolves_voice_id(self, mock_generate):
+        mock_generate.return_value = b"mock audio content"
+
+        # Scenario 1: voice_id is passed and is valid -> should use the passed voice_id
+        generate_step_audio(text="Hello", voice_name="Aura", voice_id="custom-voice-id")
+        mock_generate.assert_called_with(
+            text="Hello",
+            voice_id="custom-voice-id",
+            api_key="test-api-key",
+            tts_settings=None
+        )
+
+        # Scenario 2: voice_id is None -> should fall back to voice_name matching env voice map
+        generate_step_audio(text="Hello", voice_name="Aura", voice_id=None)
+        mock_generate.assert_called_with(
+            text="Hello",
+            voice_id="aura-voice-id-env",
+            api_key="test-api-key",
+            tts_settings=None
+        )
+
+        # Scenario 3: voice_id is empty string -> should fall back to voice_name matching env voice map
+        generate_step_audio(text="Hello", voice_name="Aura", voice_id="")
+        mock_generate.assert_called_with(
+            text="Hello",
+            voice_id="aura-voice-id-env",
+            api_key="test-api-key",
+            tts_settings=None
+        )
+
+        # Scenario 4: voice_name doesn't match map, voice_id is missing -> should use default env voice ID
+        generate_step_audio(text="Hello", voice_name="Unknown", voice_id="")
+        mock_generate.assert_called_with(
+            text="Hello",
+            voice_id="default-voice-id-env",
+            api_key="test-api-key",
+            tts_settings=None
+        )

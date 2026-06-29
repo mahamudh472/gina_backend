@@ -39,7 +39,8 @@ def generate_step_audio(
     if provider != "elevenlabs":
         raise TTSGenerationError(f"Unsupported TTS_PROVIDER '{provider}'.")
 
-    resolved_voice_id = voice_id or resolve_voice_id(voice_name)
+    cleaned_voice_id = _clean_config_value(voice_id)
+    resolved_voice_id = cleaned_voice_id or resolve_voice_id(voice_name)
     if not resolved_voice_id:
         raise TTSGenerationError(f"No TTS voice ID configured for '{voice_name}'.")
 

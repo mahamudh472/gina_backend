@@ -82,6 +82,7 @@ def create_generated_meditation(data: Dict[str, Any], user: User) -> Meditation:
                 meditation_id=meditation.id,
                 sequence=index,
                 voice_name=charecter_voice.name,
+                voice_id=charecter_voice.elevenlabs_voice_id,
             )
             
             MeditationSteps.objects.create(
@@ -101,10 +102,12 @@ def _build_step_audio_file(
     meditation_id: int,
     sequence: int,
     voice_name: str,
+    voice_id: str | None = None,
 ):
     audio_bytes = generate_step_audio(
         text=step["content"],
         voice_name=voice_name,
+        voice_id=voice_id,
         tts_settings=step.get("tts_settings"),
     )
     if not audio_bytes:
