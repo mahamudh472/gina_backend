@@ -116,10 +116,14 @@ def _build_step_audio_file(
     step_type = _slugify_audio_name(step["step_type"])
     filename = f"generated/meditation-{meditation_id}-step-{sequence}-{step_type}.mp3"
 
-    # Use the AI-generated duration from the step data (already a timedelta)
-    duration = step.get("duration")
-    if not isinstance(duration, datetime.timedelta):
-        raise TTSGenerationError("Step is missing a valid duration.")
+    from apps.ai_service.tts import get_audio_duration
+    measured_seconds = get_audio_duration(audio_bytes)
+    if measured_seconds is not None:
+        duration = datetime.timedelta(seconds=measured_seconds)
+    else:
+        duration = step.get("duration")
+        if not isinstance(duration, datetime.timedelta):
+            raise TTSGenerationError("Step is missing a valid duration.")
 
     return ContentFile(audio_bytes, name=filename), duration
 

@@ -59,8 +59,16 @@ def generate_step_audio(
 
 
 def get_audio_duration(audio_bytes: bytes) -> float | None:
-    # Removed ffprobe dependency. We simply return None.
-    return None
+    if not audio_bytes:
+        return None
+    from io import BytesIO
+    from mutagen.mp3 import MP3
+    try:
+        audio = MP3(BytesIO(audio_bytes))
+        return audio.info.length
+    except Exception as exc:
+        logger.warning("Failed to parse MP3 duration with mutagen: %s", exc)
+        return None
 
 
 def resolve_voice_id(voice_name: str = "") -> str:

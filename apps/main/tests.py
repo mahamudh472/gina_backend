@@ -485,3 +485,60 @@ class MeditationGenerationTests(APITestCase):
         self.assertEqual(relax_status['status'], 'healthy')
         self.assertEqual(relax_status['status_label'], 'Healthy')
 
+    def test_get_audio_duration_with_real_file(self):
+        import os
+        from django.conf import settings
+        from apps.ai_service.tts import get_audio_duration
+        
+        # Test with None or empty
+        self.assertIsNone(get_audio_duration(b""))
+        
+        # Test with an invalid/corrupt audio byte string
+        self.assertIsNone(get_audio_duration(b"invalid audio bytes"))
+        
+        # Test with a real MP3 file if present in media/uploads/audio
+        real_file_path = os.path.join(settings.BASE_DIR, 'media', 'uploads', 'audio', 'male_Stimme.mp3')
+        if os.path.exists(real_file_path):
+            with open(real_file_path, 'rb') as f:
+                audio_bytes = f.read()
+            duration = get_audio_duration(audio_bytes)
+            self.assertIsNotNone(duration)
+            self.assertGreater(duration, 0)
+
+    def test_recalculate_durations_command(self):
+        import os
+        from django.conf import settings
+        from django.core.management import call_command
+        from io import StringIO
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from apps.main.models import MeditationSteps
+        
+        real_file_path = os.path.join(settings.BASE_DIR, 'media', 'uploads', 'audio', 'male_Stimme.mp3')
+        if os.path.exists(real_file_path):
+            with open(real_file_path, 'rb') as f:
+                file_content = f.read()
+            audio_file = SimpleUploadedFile("test_duration_voice.mp3", file_content, content_type="audio/mpeg")
+        else:
+            audio_file = SimpleUploadedFile("dummy.mp3", b"dummy bytes", content_type="audio/mpeg")
+
+        meditation = Meditation.objects.create(
+            user=self.user,
+            title="Command Test",
+            charecter_voice=self.character_voice,
+            category=MeditationCategory.SELF_LOVE
+        )
+        step = MeditationSteps.objects.create(
+            meditation=meditation,
+            step_type=MeditationStep.GREETING,
+            content="Hello GREETING",
+            duration=datetime.timedelta(seconds=99),
+            audio_file=audio_file
+        )
+
+        out = StringIO()
+        call_command('recalculate_durations', stdout=out)
+        output_str = out.getvalue()
+        
+        self.assertIn("Found 1 steps with audio files to process.", output_str)
+        self.assertIn("Recalculation complete.", output_str)
+
