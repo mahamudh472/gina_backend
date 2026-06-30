@@ -108,6 +108,11 @@ UNFOLD = {
                         "icon": "music_note",
                         "link": "/admin/main/music/",
                     },
+                    {
+                        "title": "Meditation templates",
+                        "icon": "layers",
+                        "link": "/admin/main/meditationtemplate/",
+                    },
                 ],
             },
             {

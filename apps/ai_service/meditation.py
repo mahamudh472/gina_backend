@@ -14,23 +14,16 @@ logger = logging.getLogger(__name__)
 
 AI_STEP_ORDER = [
     "greeting",
-    "breathing",
-    "body_scan",
     "personal_reflection",
     "suggestion",
     "affirmation",
-    "visualization",
-    "conclusion",
 ]
 
 DJANGO_STEP_ORDER = [
     MeditationStep.GREETING,
     MeditationStep.PERSONAL,
-    MeditationStep.INTRODUCTION,
     MeditationStep.SUGGESTION,
     MeditationStep.CONFIRMATION,
-    MeditationStep.VISUALIZATION,
-    MeditationStep.CONCLUSION,
 ]
 
 CATEGORY_LABELS = {
@@ -344,8 +337,12 @@ def _convert_payload_to_django_steps(payload: dict[str, Any]) -> tuple[str, list
     grouped: dict[str, list[dict[str, Any]]] = {step_type: [] for step_type in DJANGO_STEP_ORDER}
 
     for step in payload["steps"]:
-        django_step_type = _map_ai_step_to_django_step(str(step["step_type"]))
-        grouped[django_step_type].append(step)
+        try:
+            django_step_type = _map_ai_step_to_django_step(str(step["step_type"]))
+            if django_step_type in grouped:
+                grouped[django_step_type].append(step)
+        except MeditationGenerationError:
+            pass
 
     steps_data = []
     for step_type in DJANGO_STEP_ORDER:

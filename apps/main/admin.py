@@ -4,7 +4,7 @@ from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import display
 from unfold.widgets import UnfoldAdminFileFieldWidget
 
-from .models import CharecterVoice, NatureSounds, BackgroundImage, Meditation, MeditationSteps, Music
+from .models import CharecterVoice, NatureSounds, BackgroundImage, Meditation, MeditationSteps, Music, MeditationTemplate
 
 
 class UnfoldAdminAudioFileWidget(UnfoldAdminFileFieldWidget):
@@ -163,8 +163,41 @@ class MusicAdmin(AudioAdminMixin, ModelAdmin):
         return obj.is_active, 'Active' if obj.is_active else 'Inactive'
 
 
+class MeditationTemplateStepsInline(AudioAdminMixin, TabularInline):
+    model = MeditationSteps
+    extra = 0
+    fields = ['step_type', 'content', 'duration', 'audio_file', 'created_at']
+    readonly_fields = ['created_at']
+    ordering = ['created_at']
+    show_count = True
+    tab = True
+
+
+class MeditationTemplateAdmin(ModelAdmin):
+    list_display = ['category', 'active_status', 'created_at', 'updated_at']
+    list_filter = ['is_active', 'category']
+    ordering = ['-created_at']
+    readonly_fields = ['created_at', 'updated_at']
+    list_per_page = 25
+    inlines = [MeditationTemplateStepsInline]
+    fieldsets = (
+        ('Template', {
+            'fields': ('category', 'is_active'),
+        }),
+        ('Timestamps', {
+            'classes': ('collapse',),
+            'fields': ('created_at', 'updated_at'),
+        }),
+    )
+
+    @display(description='Status', label={True: 'success', False: 'danger'})
+    def active_status(self, obj):
+        return obj.is_active, 'Active' if obj.is_active else 'Inactive'
+
+
 admin.site.register(CharecterVoice, CharacterVoiceAdmin)
 admin.site.register(NatureSounds, NatureSoundsAdmin)
 admin.site.register(BackgroundImage, BackgroundImageAdmin)
 admin.site.register(Meditation, MeditationAdmin)
 admin.site.register(Music, MusicAdmin)
+admin.site.register(MeditationTemplate, MeditationTemplateAdmin)

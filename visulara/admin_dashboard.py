@@ -76,10 +76,64 @@ def dashboard_callback(request, context):
     subscription_total = sum(row["total"] for row in subscription_rows)
     subscription_labels = dict(Subscription.STATUS_CHOICES)
 
+    from apps.main.models import MeditationCategory, MeditationStep, MeditationTemplate
+
+    template_status = []
+    required_steps = {
+        MeditationStep.INTRODUCTION,
+        MeditationStep.VISUALIZATION,
+        MeditationStep.CONCLUSION
+    }
+
+    active_templates = {
+        t.category: t 
+        for t in MeditationTemplate.objects.filter(is_active=True).prefetch_related('steps')
+    }
+
+    for value, label in MeditationCategory.choices:
+        active_template = active_templates.get(value)
+        if not active_template:
+            template_status.append({
+                "category": value,
+                "label": label,
+                "status": "missing_template",
+                "status_label": "No active template",
+                "missing": ["Introduction", "Visualization", "Conclusion"],
+                "href": _admin_url("main_meditationtemplate_changelist"),
+            })
+        else:
+            existing_steps = {step.step_type for step in active_template.steps.all()}
+            missing_types = required_steps - existing_steps
+            if not missing_types:
+                template_status.append({
+                    "category": value,
+                    "label": label,
+                    "status": "healthy",
+                    "status_label": "Healthy",
+                    "missing": [],
+                    "href": _admin_url("main_meditationtemplate_change", active_template.pk),
+                })
+            else:
+                step_labels = {
+                    MeditationStep.INTRODUCTION: "Introduction",
+                    MeditationStep.VISUALIZATION: "Visualization",
+                    MeditationStep.CONCLUSION: "Conclusion"
+                }
+                missing_labels = [step_labels[st] for st in required_steps if st in missing_types]
+                template_status.append({
+                    "category": value,
+                    "label": label,
+                    "status": "missing_steps",
+                    "status_label": f"Missing steps: {', '.join(missing_labels)}",
+                    "missing": missing_labels,
+                    "href": _admin_url("main_meditationtemplate_change", active_template.pk),
+                })
+
     context.update(
         {
             "dashboard": {
                 "generated_at": timezone.localtime(now).strftime("%b %-d, %Y %H:%M"),
+                "template_status": template_status,
                 "stats": [
                     {
                         "label": "Users",

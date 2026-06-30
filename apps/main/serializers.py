@@ -31,7 +31,10 @@ class MeditationStepsSerializer(serializers.ModelSerializer):
         fields = ['id', 'step_type', 'content', 'audio_file', 'duration', 'duration_percentage', 'created_at']
 
     def get_duration_percentage(self, obj):
-        total = obj.meditation.total_duration
+        meditation = getattr(obj, 'meditation', None)
+        if not meditation:
+            return 0.0
+        total = meditation.total_duration
         if total and obj.duration:
             total_seconds = total.total_seconds()
             step_seconds = obj.duration.total_seconds()
@@ -40,7 +43,7 @@ class MeditationStepsSerializer(serializers.ModelSerializer):
         return 0.0
 
 class MeditationSerializer(serializers.ModelSerializer):
-    steps = MeditationStepsSerializer(many=True, read_only=True)
+    steps = serializers.SerializerMethodField()
     charecter_voice = CharecterVoiceSerializer(read_only=True)
     nature_sound = NatureSoundsSerializer(read_only=True)
     background_image = BackgroundImageSerializer(read_only=True)
@@ -61,6 +64,9 @@ class MeditationSerializer(serializers.ModelSerializer):
             'nature_sound', 'music', 'experience_question_answer', 'category', 'created_at',
             'steps', 'total_duration'
         ]
+
+    def get_steps(self, obj):
+        return MeditationStepsSerializer(obj.get_combined_steps(), many=True, context=self.context).data
 
     def get_total_duration(self, obj):
         duration = obj.total_duration
@@ -93,12 +99,15 @@ class MeditationArchiveSerializer(serializers.ModelSerializer):
 
 class MeditationGenerationResponseSerializer(serializers.ModelSerializer):
     meditation_id = serializers.IntegerField(source='id')
-    steps = MeditationStepsSerializer(many=True, read_only=True)
+    steps = serializers.SerializerMethodField()
     total_duration = serializers.SerializerMethodField()
 
     class Meta:
         model = Meditation
         fields = ['id', 'meditation_id', 'total_duration', 'steps']
+
+    def get_steps(self, obj):
+        return MeditationStepsSerializer(obj.get_combined_steps(), many=True, context=self.context).data
 
     def get_total_duration(self, obj):
         duration = obj.total_duration

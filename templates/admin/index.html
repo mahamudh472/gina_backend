@@ -152,6 +152,36 @@
                 </div>
             </section>
 
+            <section class="vis-panel">
+                <div class="vis-panel__header">
+                    <div>
+                        <h2>Template status</h2>
+                        <p>Missing categories or steps</p>
+                    </div>
+                    <a href="{% url 'admin:main_meditationtemplate_changelist' %}">View all</a>
+                </div>
+
+                <div class="vis-health-list">
+                    {% for item in dashboard.template_status %}
+                        <a href="{{ item.href }}">
+                            <span>
+                                <strong>{{ item.label }}</strong>
+                                {% if item.status == 'healthy' %}
+                                    <small style="color: #22c55e;">All steps configured</small>
+                                {% else %}
+                                    <small style="color: #ef4444; white-space: normal;">{{ item.status_label }}</small>
+                                {% endif %}
+                            </span>
+                            {% if item.status == 'healthy' %}
+                                <em class="vis-pill vis-pill--success">OK</em>
+                            {% else %}
+                                <em class="vis-pill vis-pill--danger">Alert</em>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
+            </section>
+
             <section class="vis-panel vis-panel--wide">
                 <div class="vis-panel__header">
                     <div>

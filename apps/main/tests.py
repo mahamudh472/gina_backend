@@ -79,6 +79,31 @@ class MeditationGenerationTests(APITestCase):
         # Authenticate
         self.client.force_authenticate(user=self.user)
 
+        # Set up active MeditationTemplate for relaxation category
+        from apps.main.models import MeditationTemplate, MeditationSteps
+        relaxation_template = MeditationTemplate.objects.create(
+            category=MeditationCategory.RELAXATION,
+            is_active=True
+        )
+        MeditationSteps.objects.create(
+            meditation_template=relaxation_template,
+            step_type=MeditationStep.INTRODUCTION,
+            content="Introduction template content",
+            duration=datetime.timedelta(seconds=90)
+        )
+        MeditationSteps.objects.create(
+            meditation_template=relaxation_template,
+            step_type=MeditationStep.VISUALIZATION,
+            content="Visualization template content",
+            duration=datetime.timedelta(seconds=180)
+        )
+        MeditationSteps.objects.create(
+            meditation_template=relaxation_template,
+            step_type=MeditationStep.CONCLUSION,
+            content="Conclusion template content",
+            duration=datetime.timedelta(seconds=45)
+        )
+
         data = {
             "category": "relaxation",
             "charecter_voice_id": self.character_voice.id,
@@ -115,9 +140,10 @@ class MeditationGenerationTests(APITestCase):
             self.assertEqual(step['step_type'], step_type)
             self.assertEqual(step['duration_percentage'], expected_percent)
 
-        # Assert DB items exist
+        # Assert DB items exist (only the 4 AI steps are in the DB)
         meditation = Meditation.objects.get(id=res_data['id'])
-        self.assertEqual(meditation.steps.count(), 7)
+        self.assertEqual(meditation.steps.count(), 4)
+        self.assertEqual(len(meditation.get_combined_steps()), 7)
         self.assertGreater(meditation.total_duration, datetime.timedelta(seconds=0))
 
     def test_generate_meditation_nature_sound_not_found(self):
@@ -343,4 +369,119 @@ class MeditationGenerationTests(APITestCase):
         response = self.client.get(detail_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIsNone(response.data['music'])
+
+    def test_single_active_template_per_category(self):
+        from apps.main.models import MeditationTemplate
+        # Create first active template for energy category
+        t1 = MeditationTemplate.objects.create(
+            category=MeditationCategory.ENERGY,
+            is_active=True
+        )
+        self.assertTrue(t1.is_active)
+
+        # Create second active template for energy category
+        t2 = MeditationTemplate.objects.create(
+            category=MeditationCategory.ENERGY,
+            is_active=True
+        )
+        t1.refresh_from_db()
+        t2.refresh_from_db()
+
+        # The first template should now be inactive, second active
+        self.assertFalse(t1.is_active)
+        self.assertTrue(t2.is_active)
+
+    def test_meditation_step_validation_for_templates(self):
+        from django.core.exceptions import ValidationError
+        from apps.main.models import MeditationTemplate, MeditationSteps
+
+        template = MeditationTemplate.objects.create(
+            category=MeditationCategory.SELF_LOVE,
+            is_active=True
+        )
+
+        # Valid step type should succeed
+        step1 = MeditationSteps.objects.create(
+            meditation_template=template,
+            step_type=MeditationStep.INTRODUCTION,
+            content="Hello introduction",
+            duration=datetime.timedelta(seconds=60)
+        )
+        self.assertEqual(step1.step_type, MeditationStep.INTRODUCTION)
+
+        # Invalid step type (e.g. GREETING) for template should raise ValidationError
+        with self.assertRaises(ValidationError):
+            MeditationSteps.objects.create(
+                meditation_template=template,
+                step_type=MeditationStep.GREETING,
+                content="Hello greeting",
+                duration=datetime.timedelta(seconds=60)
+            )
+
+        # Step with both meditation and template should raise ValidationError
+        meditation = Meditation.objects.create(
+            user=self.user,
+            title="Mix Test",
+            charecter_voice=self.character_voice,
+            category=MeditationCategory.SELF_LOVE
+        )
+        with self.assertRaises(ValidationError):
+            MeditationSteps.objects.create(
+                meditation=meditation,
+                meditation_template=template,
+                step_type=MeditationStep.INTRODUCTION,
+                content="Mix",
+                duration=datetime.timedelta(seconds=60)
+            )
+
+    def test_dashboard_callback_template_status(self):
+        from visulara.admin_dashboard import dashboard_callback
+        from apps.main.models import MeditationTemplate, MeditationSteps
+        
+        # Initially, all categories should be missing active templates
+        context = {}
+        res_context = dashboard_callback(None, context)
+        template_status = res_context['dashboard']['template_status']
+        
+        # Check relaxation status (should be missing_template)
+        relax_status = next(item for item in template_status if item['category'] == 'relaxation')
+        self.assertEqual(relax_status['status'], 'missing_template')
+        
+        # Create active template for relaxation category, but missing steps
+        template = MeditationTemplate.objects.create(
+            category=MeditationCategory.RELAXATION,
+            is_active=True
+        )
+        MeditationSteps.objects.create(
+            meditation_template=template,
+            step_type=MeditationStep.INTRODUCTION,
+            content="Intro text",
+            duration=datetime.timedelta(seconds=60)
+        )
+        
+        res_context = dashboard_callback(None, context)
+        template_status = res_context['dashboard']['template_status']
+        relax_status = next(item for item in template_status if item['category'] == 'relaxation')
+        self.assertEqual(relax_status['status'], 'missing_steps')
+        self.assertIn('Visualization', relax_status['status_label'])
+        
+        # Add remaining steps to make it healthy
+        MeditationSteps.objects.create(
+            meditation_template=template,
+            step_type=MeditationStep.VISUALIZATION,
+            content="Viz text",
+            duration=datetime.timedelta(seconds=60)
+        )
+        MeditationSteps.objects.create(
+            meditation_template=template,
+            step_type=MeditationStep.CONCLUSION,
+            content="Conclusion text",
+            duration=datetime.timedelta(seconds=60)
+        )
+        
+        res_context = dashboard_callback(None, context)
+        template_status = res_context['dashboard']['template_status']
+        relax_status = next(item for item in template_status if item['category'] == 'relaxation')
+        self.assertEqual(relax_status['status'], 'healthy')
+        self.assertEqual(relax_status['status_label'], 'Healthy')
 

@@ -89,8 +89,7 @@ class MeditationArchiveView(generics.ListAPIView):
         queryset = self.filter_queryset(self.get_queryset())
         
         all_ids = list(queryset.values_list('id', flat=True))
-        overall_duration = MeditationSteps.objects.filter(meditation__user=request.user).aggregate(Sum('duration'))['duration__sum']
-        overall_duration_seconds = overall_duration.total_seconds() if overall_duration else 0
+        overall_duration_seconds = sum(meditation.total_duration.total_seconds() for meditation in queryset)
         
         page = self.paginate_queryset(queryset)
         if page is not None:
