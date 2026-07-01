@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import display
 from unfold.widgets import UnfoldAdminFileFieldWidget
@@ -214,7 +215,7 @@ class MeditationTemplateAdmin(ModelAdmin):
                 parts.append(f'<span style="color: #22c55e; font-weight: bold;">{step_names[r]}</span>')
             else:
                 parts.append(f'<span style="color: #ef4444; text-decoration: line-through;">{step_names[r]}</span>')
-        return format_html(" | ".join(parts))
+        return mark_safe(" | ".join(parts))
 
 
 admin.site.register(CharecterVoice, CharacterVoiceAdmin)
