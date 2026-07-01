@@ -166,6 +166,34 @@ class MeditationSteps(models.Model):
                 raise ValidationError(f"MeditationTemplate steps only support step types: {', '.join(allowed_steps)}")
 
     def save(self, *args, **kwargs):
+        # Automatically calculate duration if a new audio file is uploaded or changed
+        if self.audio_file:
+            is_new_file = False
+            if not self.pk:
+                is_new_file = True
+            else:
+                try:
+                    orig = MeditationSteps.objects.get(pk=self.pk)
+                    if orig.audio_file != self.audio_file:
+                        is_new_file = True
+                except MeditationSteps.DoesNotExist:
+                    is_new_file = True
+
+            if is_new_file:
+                try:
+                    from apps.ai_service.tts import get_audio_duration
+                    self.audio_file.open('rb')
+                    audio_bytes = self.audio_file.read()
+                    try:
+                        self.audio_file.seek(0)
+                    except Exception:
+                        pass
+                    measured_seconds = get_audio_duration(audio_bytes)
+                    if measured_seconds is not None:
+                        self.duration = datetime.timedelta(seconds=measured_seconds)
+                except Exception:
+                    pass
+
         self.full_clean()
         super().save(*args, **kwargs)
 

@@ -582,3 +582,23 @@ class MeditationGenerationTests(APITestCase):
         self.assertIn("Found 1 steps with audio files to process.", output_str)
         self.assertIn("Recalculation complete.", output_str)
 
+    def test_meditation_step_auto_calculates_duration_on_save(self):
+        from unittest.mock import patch
+        from apps.main.models import MeditationSteps
+        
+        with patch('apps.ai_service.tts.get_audio_duration', return_value=123.45):
+            meditation = Meditation.objects.create(
+                user=self.user,
+                title="Test Auto Duration",
+                charecter_voice=self.character_voice,
+                category=MeditationCategory.SELF_LOVE
+            )
+            step = MeditationSteps.objects.create(
+                meditation=meditation,
+                step_type=MeditationStep.GREETING,
+                content="Hello",
+                audio_file=SimpleUploadedFile("dummy.mp3", b"dummy mp3 data", content_type="audio/mpeg")
+            )
+            
+            self.assertEqual(step.duration, datetime.timedelta(seconds=123, microseconds=450000))
+
