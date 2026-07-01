@@ -4,7 +4,7 @@ from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import display
 from unfold.widgets import UnfoldAdminFileFieldWidget
 
-from .models import CharecterVoice, NatureSounds, BackgroundImage, Meditation, MeditationSteps, Music, MeditationTemplate
+from .models import CharecterVoice, NatureSounds, BackgroundImage, Meditation, MeditationSteps, Music, MeditationTemplate, MeditationStep
 
 
 class UnfoldAdminAudioFileWidget(UnfoldAdminFileFieldWidget):
@@ -174,15 +174,16 @@ class MeditationTemplateStepsInline(AudioAdminMixin, TabularInline):
 
 
 class MeditationTemplateAdmin(ModelAdmin):
-    list_display = ['category', 'active_status', 'created_at', 'updated_at']
-    list_filter = ['is_active', 'category']
-    ordering = ['-created_at']
+    list_display = ['category_badge', 'charecter_voice', 'active_status', 'steps_configured', 'created_at']
+    list_filter = ['is_active', 'category', 'charecter_voice']
+    ordering = ['category', 'charecter_voice', '-created_at']
     readonly_fields = ['created_at', 'updated_at']
     list_per_page = 25
+    autocomplete_fields = ['charecter_voice']
     inlines = [MeditationTemplateStepsInline]
     fieldsets = (
-        ('Template', {
-            'fields': ('category', 'is_active'),
+        ('Template details', {
+            'fields': ('category', 'charecter_voice', 'is_active'),
         }),
         ('Timestamps', {
             'classes': ('collapse',),
@@ -190,9 +191,30 @@ class MeditationTemplateAdmin(ModelAdmin):
         }),
     )
 
+    @display(description='Category', label=True)
+    def category_badge(self, obj):
+        return obj.get_category_display()
+
     @display(description='Status', label={True: 'success', False: 'danger'})
     def active_status(self, obj):
         return obj.is_active, 'Active' if obj.is_active else 'Inactive'
+
+    @display(description='Steps Configured')
+    def steps_configured(self, obj):
+        steps = list(obj.steps.values_list('step_type', flat=True))
+        required = [MeditationStep.INTRODUCTION, MeditationStep.VISUALIZATION, MeditationStep.CONCLUSION]
+        step_names = {
+            MeditationStep.INTRODUCTION: 'Intro',
+            MeditationStep.VISUALIZATION: 'Viz',
+            MeditationStep.CONCLUSION: 'Outro'
+        }
+        parts = []
+        for r in required:
+            if r in steps:
+                parts.append(f'<span style="color: #22c55e; font-weight: bold;">{step_names[r]}</span>')
+            else:
+                parts.append(f'<span style="color: #ef4444; text-decoration: line-through;">{step_names[r]}</span>')
+        return format_html(" | ".join(parts))
 
 
 admin.site.register(CharecterVoice, CharacterVoiceAdmin)

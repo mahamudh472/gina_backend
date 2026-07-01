@@ -77,7 +77,6 @@ def dashboard_callback(request, context):
     subscription_labels = dict(Subscription.STATUS_CHOICES)
 
     from apps.main.models import MeditationCategory, MeditationStep, MeditationTemplate
-
     template_status = []
     required_steps = {
         MeditationStep.INTRODUCTION,
@@ -85,49 +84,55 @@ def dashboard_callback(request, context):
         MeditationStep.CONCLUSION
     }
 
+    active_voices = CharecterVoice.objects.filter(is_active=True)
     active_templates = {
-        t.category: t 
+        (t.category, t.charecter_voice_id): t 
         for t in MeditationTemplate.objects.filter(is_active=True).prefetch_related('steps')
     }
 
     for value, label in MeditationCategory.choices:
-        active_template = active_templates.get(value)
-        if not active_template:
-            template_status.append({
-                "category": value,
-                "label": label,
-                "status": "missing_template",
-                "status_label": "No active template",
-                "missing": ["Introduction", "Visualization", "Conclusion"],
-                "href": _admin_url("main_meditationtemplate_changelist"),
-            })
-        else:
-            existing_steps = {step.step_type for step in active_template.steps.all()}
-            missing_types = required_steps - existing_steps
-            if not missing_types:
+        for voice in active_voices:
+            active_template = active_templates.get((value, voice.id))
+            combo_label = f"{label} ({voice.name})"
+            if not active_template:
                 template_status.append({
                     "category": value,
-                    "label": label,
-                    "status": "healthy",
-                    "status_label": "Healthy",
-                    "missing": [],
-                    "href": _admin_url("main_meditationtemplate_change", active_template.pk),
+                    "charecter_voice": voice.name,
+                    "label": combo_label,
+                    "status": "missing_template",
+                    "status_label": f"No active template for {voice.name}",
+                    "missing": ["Introduction", "Visualization", "Conclusion"],
+                    "href": _admin_url("main_meditationtemplate_add") + f"?category={value}&charecter_voice={voice.id}",
                 })
             else:
-                step_labels = {
-                    MeditationStep.INTRODUCTION: "Introduction",
-                    MeditationStep.VISUALIZATION: "Visualization",
-                    MeditationStep.CONCLUSION: "Conclusion"
-                }
-                missing_labels = [step_labels[st] for st in required_steps if st in missing_types]
-                template_status.append({
-                    "category": value,
-                    "label": label,
-                    "status": "missing_steps",
-                    "status_label": f"Missing steps: {', '.join(missing_labels)}",
-                    "missing": missing_labels,
-                    "href": _admin_url("main_meditationtemplate_change", active_template.pk),
-                })
+                existing_steps = {step.step_type for step in active_template.steps.all()}
+                missing_types = required_steps - existing_steps
+                if not missing_types:
+                    template_status.append({
+                        "category": value,
+                        "charecter_voice": voice.name,
+                        "label": combo_label,
+                        "status": "healthy",
+                        "status_label": "Healthy",
+                        "missing": [],
+                        "href": _admin_url("main_meditationtemplate_change", active_template.pk),
+                    })
+                else:
+                    step_labels = {
+                        MeditationStep.INTRODUCTION: "Introduction",
+                        MeditationStep.VISUALIZATION: "Visualization",
+                        MeditationStep.CONCLUSION: "Conclusion"
+                    }
+                    missing_labels = [step_labels[st] for st in required_steps if st in missing_types]
+                    template_status.append({
+                        "category": value,
+                        "charecter_voice": voice.name,
+                        "label": combo_label,
+                        "status": "missing_steps",
+                        "status_label": f"Missing steps: {', '.join(missing_labels)}",
+                        "missing": missing_labels,
+                        "href": _admin_url("main_meditationtemplate_change", active_template.pk),
+                    })
 
     context.update(
         {

@@ -83,6 +83,7 @@ class MeditationGenerationTests(APITestCase):
         from apps.main.models import MeditationTemplate, MeditationSteps
         relaxation_template = MeditationTemplate.objects.create(
             category=MeditationCategory.RELAXATION,
+            charecter_voice=self.character_voice,
             is_active=True
         )
         MeditationSteps.objects.create(
@@ -375,6 +376,7 @@ class MeditationGenerationTests(APITestCase):
         # Create first active template for energy category
         t1 = MeditationTemplate.objects.create(
             category=MeditationCategory.ENERGY,
+            charecter_voice=self.character_voice,
             is_active=True
         )
         self.assertTrue(t1.is_active)
@@ -382,6 +384,7 @@ class MeditationGenerationTests(APITestCase):
         # Create second active template for energy category
         t2 = MeditationTemplate.objects.create(
             category=MeditationCategory.ENERGY,
+            charecter_voice=self.character_voice,
             is_active=True
         )
         t1.refresh_from_db()
@@ -391,12 +394,39 @@ class MeditationGenerationTests(APITestCase):
         self.assertFalse(t1.is_active)
         self.assertTrue(t2.is_active)
 
+    def test_multiple_active_templates_for_different_voices(self):
+        from apps.main.models import MeditationTemplate
+        dummy_audio = SimpleUploadedFile("voice2.mp3", b"dummy audio content", content_type="audio/mpeg")
+        other_voice = CharecterVoice.objects.create(
+            name="Serena",
+            short_description="Another soothing voice.",
+            file=dummy_audio
+        )
+        # Create active template for voice 1
+        t1 = MeditationTemplate.objects.create(
+            category=MeditationCategory.ENERGY,
+            charecter_voice=self.character_voice,
+            is_active=True
+        )
+        # Create active template for voice 2 (same category, different voice)
+        t2 = MeditationTemplate.objects.create(
+            category=MeditationCategory.ENERGY,
+            charecter_voice=other_voice,
+            is_active=True
+        )
+        t1.refresh_from_db()
+        t2.refresh_from_db()
+        # Both should remain active!
+        self.assertTrue(t1.is_active)
+        self.assertTrue(t2.is_active)
+
     def test_meditation_step_validation_for_templates(self):
         from django.core.exceptions import ValidationError
         from apps.main.models import MeditationTemplate, MeditationSteps
 
         template = MeditationTemplate.objects.create(
             category=MeditationCategory.SELF_LOVE,
+            charecter_voice=self.character_voice,
             is_active=True
         )
 
@@ -444,12 +474,16 @@ class MeditationGenerationTests(APITestCase):
         template_status = res_context['dashboard']['template_status']
         
         # Check relaxation status (should be missing_template)
-        relax_status = next(item for item in template_status if item['category'] == 'relaxation')
+        relax_status = next(
+            item for item in template_status 
+            if item['category'] == 'relaxation' and item['charecter_voice'] == self.character_voice.name
+        )
         self.assertEqual(relax_status['status'], 'missing_template')
         
         # Create active template for relaxation category, but missing steps
         template = MeditationTemplate.objects.create(
             category=MeditationCategory.RELAXATION,
+            charecter_voice=self.character_voice,
             is_active=True
         )
         MeditationSteps.objects.create(
@@ -461,7 +495,10 @@ class MeditationGenerationTests(APITestCase):
         
         res_context = dashboard_callback(None, context)
         template_status = res_context['dashboard']['template_status']
-        relax_status = next(item for item in template_status if item['category'] == 'relaxation')
+        relax_status = next(
+            item for item in template_status 
+            if item['category'] == 'relaxation' and item['charecter_voice'] == self.character_voice.name
+        )
         self.assertEqual(relax_status['status'], 'missing_steps')
         self.assertIn('Visualization', relax_status['status_label'])
         
@@ -481,7 +518,10 @@ class MeditationGenerationTests(APITestCase):
         
         res_context = dashboard_callback(None, context)
         template_status = res_context['dashboard']['template_status']
-        relax_status = next(item for item in template_status if item['category'] == 'relaxation')
+        relax_status = next(
+            item for item in template_status 
+            if item['category'] == 'relaxation' and item['charecter_voice'] == self.character_voice.name
+        )
         self.assertEqual(relax_status['status'], 'healthy')
         self.assertEqual(relax_status['status_label'], 'Healthy')
 

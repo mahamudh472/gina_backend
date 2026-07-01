@@ -61,20 +61,23 @@ class MeditationStep(models.TextChoices):
 
 class MeditationTemplate(models.Model):
     category = models.CharField(max_length=50, choices=MeditationCategory.choices, db_index=True)
+    charecter_voice = models.ForeignKey(CharecterVoice, on_delete=models.CASCADE, related_name='templates')
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        if self.is_active and self.category:
+        if self.is_active and self.category and self.charecter_voice:
             MeditationTemplate.objects.filter(
                 category=self.category,
+                charecter_voice=self.charecter_voice,
                 is_active=True
             ).exclude(pk=self.pk).update(is_active=False)
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Template - {self.get_category_display()} ({'Active' if self.is_active else 'Inactive'})"
+        voice_name = self.charecter_voice.name if self.charecter_voice_id else "No Voice"
+        return f"Template - {self.get_category_display()} ({voice_name}) ({'Active' if self.is_active else 'Inactive'})"
 
 
 from django.conf import settings
@@ -98,6 +101,7 @@ class Meditation(models.Model):
         
         active_template = MeditationTemplate.objects.filter(
             category=self.category,
+            charecter_voice=self.charecter_voice,
             is_active=True
         ).first()
         
