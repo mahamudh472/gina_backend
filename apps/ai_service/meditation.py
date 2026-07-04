@@ -231,45 +231,33 @@ def build_prompt(data: dict[str, Any]) -> str:
 
     Sprache: Deutsch.
 
-    # KRITISCH: EINHEITLICHER SPRECHRHYTHMUS (WICHTIGSTE REGEL)
-    Die gesamte Meditation — von der ersten Silbe des Greetings bis zum letzten Wort der Conclusion —
-    MUSS wie EIN einziger, ununterbrochener, extrem langsamer Fluss klingen.
-    Es darf KEINEN Unterschied in Geschwindigkeit, Tonfall oder Energie zwischen den 8 Schritten geben.
-
-    ## Schreibmuster (IDENTISCH fuer JEDEN Schritt)
-    Schreibe in einem ruhigen, poetischen, fließenden Rhythmus.
-    - Nutze natürliche Kommas und Punkte, um Atempausen zu signalisieren.
-    - Vermeide abgehackte Halbsätze. Lass die Sätze harmonisch und beruhigend fließen.
-    - Beende jeden Satz ganz normal mit einem Punkt.
-    - Verwende KEINE Ausrufezeichen, Fragezeichen oder SSML/Code-Tags.
-
-    ## Wortdichte-Regel (KRITISCH fuer gleichmaessige Geschwindigkeit)
-    - Schreibe nur ca. 40-60 Woerter pro Minute Dauer.
-    - Ein 60-Sekunden-Schritt = maximal 60 Woerter.
-    - Weniger Text ist besser. Lass extrem viel Raum fuer Stille.
-
-    ## Tonfall (IDENTISCH fuer alle 8 Schritte)
-    - Warm, sanft, langsam, empathisch, ruhig.
-    - Alle 8 Schritte sind EIN Fluss. KEINE Stimmungswechsel. KEINE Energieaenderung.
-    - KEIN Unterschied zwischen Greeting und Breathing.
-    - KEIN Unterschied zwischen Body Scan und Affirmation.
-
-    ## Verbotene Muster
-    - KEINE langen Saetze (ueber 8-10 Woerter ohne Komma).
-    - KEINE Aufzaehlungen.
-    - KEINE rhetorischen Fragen.
-    - KEINE Ausrufezeichen.
-    - KEINE energischen Formulierungen.
+    # GLOBALE REGELN FÜR ALLE AI-GENERIERTEN MEDITATIONSBLÖCKE
+    - **TONFALL**: Ruhig, warm, achtsam und vertrauenswürdig (calm, warm, mindful, trustworthy).
+    - **SPRACHE**: Einfach, klar und leicht verständlich.
+    - **LÄNGE**: Nicht zu lang. Konzentriere dich auf die Wirkung, nicht auf die Textmenge.
+    - **KEIN STORYTELLING**: Erzähle keine Geschichten. Führe und leite den Nutzer lediglich an.
+    - **PAUSEN**: Setze bewusste Sprechpausen für die Sprachsynthese ein (signalisiert durch natürliche Kommas und Punkte).
+    - **EINHEITLICHER SPRECHRHYTHMUS (KRITISCH)**:
+      Die gesamte Meditation muss wie ein einziger, ununterbrochener, extrem langsamer Fluss klingen.
+      Es darf keinen Unterschied in Geschwindigkeit, Tonfall oder Energie zwischen den Schritten geben.
+    - **SCHREIBMUSTER**:
+      Schreibe in einem ruhigen, poetischen, fließenden Rhythmus.
+      Beende jeden Satz normal mit einem Punkt.
+      Verwende KEINE Ausrufezeichen, Fragezeichen oder SSML/Code-Tags.
+    - **WORTDICHTE**:
+      Schreibe nur ca. 40-60 Wörter pro Minute Dauer. Lass extrem viel Raum für Stille.
+    - **VERBOTENE MUSTER**:
+      KEINE Sätze über 8-10 Wörter ohne Komma. KEINE Aufzählungen. KEINE rhetorischen Fragen. KEINE energischen Formulierungen.
 
     Benutzerprofil:
     - Kategorie: {data["category_label"]}
-    - Emotion: {data["emotion"] or "Nicht angegeben"}
+    - Emotion / aktuelle Stimmung: (Extrahiere die aktuelle Stimmung, Emotion oder das Gefühl des Nutzers selbstständig aus den unten stehenden Antworten des Fragebogens)
     - Ziel: {data["goal"]}
     - Zu loesende Belastung: {data["avoid"] or "Nicht angegeben"}
     - Dauer: {data["duration"]} Minuten
     - Erfahrung: {data["experience"]}
     - Koerperspannung: {body_tension}
-    - Naturklang: {data["nature_sound"] or "Nicht angegeben"}
+    - Naturklang (Audio-Anker): {data["nature_sound"] or "Nicht angegeben"}
     - Visualisierungslandschaft: {data["landscape"] or "Nicht angegeben"}
     - Stimme: {data["voice_name"] or "Nicht angegeben"}
     - Name: {data["user_name"] or "Nicht angegeben"}
@@ -281,20 +269,35 @@ def build_prompt(data: dict[str, Any]) -> str:
     - Visualisierung: {guidance["visualization"]}
     - Affirmation: {guidance["affirmation"]}
 
-    ## Spezifische Anforderungen fuer die AI-generierten Schritte:
-    - **greeting**: Eine herzliche, personalisierte Begrüßung für den Nutzer.
-    - **personal_reflection**: Ein personalisierter Hauptteil, der auf die spezifische Situation, Emotionen und Ziele des Nutzers eingeht.
-    - **suggestion**: Muss als nahtlose Schleife (Loop) konzipiert sein. Das bedeutet:
-      - Kein klarer Anfang und kein klares Ende.
-      - Besteht aus kurzen rhythmischen Sätzen.
-      - Enthält bewusste Sprechpausen.
-      - Erzeugt einen ruhigen, kontinuierlichen Redefluss, der sich für eine ständige Wiederholung eignet.
-    - **affirmation**: Muss ebenfalls als nahtlose Schleife (Loop) für ständige Wiederholung konzipiert sein. Das bedeutet:
-      - Kein klarer Anfang und kein klares Ende.
-      - Besteht aus kurzen rhythmischen Sätzen.
-      - Enthält bewusste Sprechpausen.
-      - Erzeugt einen ruhigen, kontinuierlichen Redefluss.
-    - **visualization**: Konzentriert sich ausschließlich auf die ausgewählte Visualisierungslandschaft ({data["landscape"] or "Nicht angegeben"}). Integriere den gewählten Naturklang ({data["nature_sound"] or "Nicht angegeben"}) natürlich und harmonisch durchgehend in die Beschreibung der Visualisierung.
+    # SPEZIFISCHE ANFORDERUNGEN AN DIE AI-BLÖCKE:
+
+    ## A: greeting (Personal Welcome)
+    - **Zweck**: Emotionaler Anker und Abholen des Nutzers.
+    - **Variablen**: Name des Nutzers ({data["user_name"] or "Nicht angegeben"}), aktuelle Stimmung/Emotion (die du selbstständig aus den unten stehenden Antworten des Fragebogens extrahierst).
+    - **Aufgabe**: Hole den Nutzer genau da ab, wo er emotional steht, und gestalte den Übergang zur darauffolgenden Einführung (Intro).
+    - **Beispiel-Struktur**: "Hallo {data["user_name"] or "Nutzer"}. Wie schön, dass du dir heute diesen Moment für dich nimmst. Du hast angegeben, dass du dich gerade [Stimmung/Gefühl aus dem Fragebogen] fühlst. Das ist vollkommen okay – alles darf genau so sein, wie es jetzt ist. Gemeinsam schaffen wir den Raum, um diesen Zustand sanft zu verändern. Lass uns beginnen..."
+
+    ## D: personal_reflection (Personalized Main Section)
+    - **Zweck**: Körperfokus und Lösen von Anspannungen.
+    - **Variablen**: Körperfokus/Körperspannung ({body_tension}), zu lösende Belastung/Stressoren ({data["avoid"] or "Nicht angegeben"}).
+    - **Aufgabe**: Gehe explizit auf den ausgewählten Körperbereich ein und unterstütze den Nutzer aktiv beim Loslassen der Anspannungen.
+    - **Beispiel-Strukturen (je nach Auswahl des Körperfokus)**:
+      - Kiefer & Gesicht: "Richte deine Aufmerksamkeit auf dein Gesicht. Lass den Biss los. Erlaube deinem Kiefer, vollkommen weich zu werden, als würde alle Schwere einfach von dir abfließen."
+      - Schultern & Nacken: "Spüre in deine Schultern hinein. Stell dir vor, wie die Last, die du dort vielleicht trägst, wie warmes Wachs schmeltzt und in den Boden sinkt."
+      - Unterer Rücken: "Atme tief in deinen unteren Rücken. Spüre, wie dieser Bereich mit jedem Atemzug weicher wird und du mehr Halt und Stabilität in dir findest."
+
+    ## E: suggestion & F: affirmation (Endless Loops)
+    - **Zweck**: Verankerung des Meditationsziels ({data["goal"]}) in einer Endlosschleife.
+    - **WICHTIG (LOOP-FÄHIG)**: Diese Blöcke sind keine Standardtexte. Sie müssen so geschrieben sein, dass sie nahtlos wiederholt werden können. Sie dürfen keinen klaren Anfang und kein klares Ende haben, müssen aus kurzen rhythmischen Sätzen bestehen und einen ruhigen, kontinuierlichen Redefluss erzeugen.
+    - **Aufgabe**: Generiere jeweils drei kurze Variationen/Sätze basierend auf dem Ziel des Nutzers.
+    - **Beispiel-Strukturen**:
+      - **suggestion** (E): "Du erlaubst dir jetzt, immer mehr {data["goal"]} zu werden. Mit jedem Atemzug verankert sich dieses Gefühl tiefer in dir."
+      - **affirmation** (F): "Ich bin frei. Ich bin ruhig. Ich bin vollkommen {data["goal"]}."
+
+    ## G: visualization (Generated Journey)
+    - **Zweck**: Die Reise in die gewählte Visualisierungslandschaft ({data["landscape"] or "Nicht angegeben"}) und Integration des Naturklangs/Audio-Ankers ({data["nature_sound"] or "Nicht angegeben"}).
+    - **Aufgabe**: Führe den Nutzer in die ausgewählte Landschaft und binde den Naturklang natürlich und harmonisch durchgehend in die Beschreibung ein.
+    - **Beispiel-Struktur**: "Vor deinem inneren Auge entfaltet sich dein ganz persönlicher Ort: {data["landscape"] or "dein Kraftort"}. Du nimmst die Farben wahr, die friedliche Atmosphäre, und du hörst ganz deutlich deinen Anker der Ruhe: {data["nature_sound"] or "das Rauschen"}. Lass dich vollkommen von diesem Ort einhüllen und spüre, wie du hier genau die Kraft auflädst, die du brauchst."
 
     Pflichtanforderungen:
     1. Erstelle einzigartige, poetische Inhalte — keine statische Vorlage.
