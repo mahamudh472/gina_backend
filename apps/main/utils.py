@@ -152,6 +152,7 @@ def _generate_static_meditation_steps(category: str, q_a: Any) -> Tuple[str, Lis
         {"step_type": MeditationStep.PERSONAL, "content": theme["personal"], "duration": datetime.timedelta(seconds=60)},
         {"step_type": MeditationStep.SUGGESTION, "content": theme["suggestion"], "duration": datetime.timedelta(seconds=120)},
         {"step_type": MeditationStep.CONFIRMATION, "content": theme["confirmation"], "duration": datetime.timedelta(seconds=60)},
+        {"step_type": MeditationStep.VISUALIZATION, "content": theme["visualization"], "duration": datetime.timedelta(seconds=120)},
     ]
 
     return title, steps_data

@@ -94,9 +94,9 @@ class MeditationGenerationTests(APITestCase):
         )
         MeditationSteps.objects.create(
             meditation_template=relaxation_template,
-            step_type=MeditationStep.VISUALIZATION,
-            content="Visualization template content",
-            duration=datetime.timedelta(seconds=180)
+            step_type=MeditationStep.TRANSITION,
+            content="Transition template content",
+            duration=datetime.timedelta(seconds=60)
         )
         MeditationSteps.objects.create(
             meditation_template=relaxation_template,
@@ -123,16 +123,17 @@ class MeditationGenerationTests(APITestCase):
 
         # Verify steps
         steps = res_data['steps']
-        self.assertEqual(len(steps), 7)
+        self.assertEqual(len(steps), 8)
         
         # Verify step types and percentages
         expected_steps = [
             (MeditationStep.GREETING, 7.5),
-            (MeditationStep.PERSONAL, 10.0),
             (MeditationStep.INTRODUCTION, 15.0),
+            (MeditationStep.TRANSITION, 10.0),
+            (MeditationStep.PERSONAL, 10.0),
             (MeditationStep.SUGGESTION, 20.0),
             (MeditationStep.CONFIRMATION, 10.0),
-            (MeditationStep.VISUALIZATION, 30.0),
+            (MeditationStep.VISUALIZATION, 20.0),
             (MeditationStep.CONCLUSION, 7.5),
         ]
         
@@ -141,10 +142,10 @@ class MeditationGenerationTests(APITestCase):
             self.assertEqual(step['step_type'], step_type)
             self.assertEqual(step['duration_percentage'], expected_percent)
 
-        # Assert DB items exist (only the 4 AI steps are in the DB)
+        # Assert DB items exist (only the 5 AI steps are in the DB)
         meditation = Meditation.objects.get(id=res_data['id'])
-        self.assertEqual(meditation.steps.count(), 4)
-        self.assertEqual(len(meditation.get_combined_steps()), 7)
+        self.assertEqual(meditation.steps.count(), 5)
+        self.assertEqual(len(meditation.get_combined_steps()), 8)
         self.assertGreater(meditation.total_duration, datetime.timedelta(seconds=0))
 
     def test_generate_meditation_nature_sound_not_found(self):
@@ -500,13 +501,13 @@ class MeditationGenerationTests(APITestCase):
             if item['category'] == 'relaxation' and item['charecter_voice'] == self.character_voice.name
         )
         self.assertEqual(relax_status['status'], 'missing_steps')
-        self.assertIn('Visualization', relax_status['status_label'])
+        self.assertIn('Transition', relax_status['status_label'])
         
         # Add remaining steps to make it healthy
         MeditationSteps.objects.create(
             meditation_template=template,
-            step_type=MeditationStep.VISUALIZATION,
-            content="Viz text",
+            step_type=MeditationStep.TRANSITION,
+            content="Trans text",
             duration=datetime.timedelta(seconds=60)
         )
         MeditationSteps.objects.create(
@@ -601,4 +602,33 @@ class MeditationGenerationTests(APITestCase):
             )
             
             self.assertEqual(step.duration, datetime.timedelta(seconds=123, microseconds=450000))
+
+    def test_meditation_template_form_category_choices(self):
+        from apps.main.admin import MeditationTemplateForm
+        form = MeditationTemplateForm()
+        choices = dict(form.fields['category'].choices)
+        
+        # Check that choices only contain the allowed options in the dropdown
+        self.assertEqual(len(choices), len(MeditationCategory.choices))
+        
+        # Check that each choice shows both the English and German word
+        for val, label in choices.items():
+            self.assertIn(val, label)  # English key
+            german_label = MeditationCategory(val).label
+            self.assertIn(german_label, label)  # German label
+
+    def test_meditation_template_step_form_choices(self):
+        from apps.main.admin import MeditationTemplateStepForm
+        form = MeditationTemplateStepForm()
+        choices = dict(form.fields['step_type'].choices)
+        
+        # Check that choices only contain the allowed options for templates (INTRODUCTION, TRANSITION, CONCLUSION)
+        allowed_steps = {MeditationStep.INTRODUCTION, MeditationStep.TRANSITION, MeditationStep.CONCLUSION}
+        self.assertEqual(set(choices.keys()), allowed_steps)
+        
+        # Check that each choice shows both the English and German word
+        for val, label in choices.items():
+            self.assertIn(val, label)  # English key
+            german_label = MeditationStep(val).label
+            self.assertIn(german_label, label)  # German label
 

@@ -53,6 +53,7 @@ class MeditationStep(models.TextChoices):
     GREETING = "greeting", "Begrüßung"
     PERSONAL = "personal", "Persönlich"
     INTRODUCTION = "introduction", "Einführung"
+    TRANSITION = "transition", "Übergang"
     SUGGESTION = "suggestion", "Vorschlag"
     CONFIRMATION = "confirmation", "Bestätigung"
     VISUALIZATION = "visualization", "Visualisierung"
@@ -115,14 +116,15 @@ class Meditation(models.Model):
         combined = []
         for step_type in [
             MeditationStep.GREETING,
-            MeditationStep.PERSONAL,
             MeditationStep.INTRODUCTION,
+            MeditationStep.TRANSITION,
+            MeditationStep.PERSONAL,
             MeditationStep.SUGGESTION,
             MeditationStep.CONFIRMATION,
             MeditationStep.VISUALIZATION,
             MeditationStep.CONCLUSION,
         ]:
-            if step_type in [MeditationStep.INTRODUCTION, MeditationStep.VISUALIZATION, MeditationStep.CONCLUSION]:
+            if step_type in [MeditationStep.INTRODUCTION, MeditationStep.TRANSITION, MeditationStep.CONCLUSION]:
                 step = template_steps.get(step_type)
                 if step:
                     step.meditation = self  # Inject self for percentage calculations
@@ -161,7 +163,7 @@ class MeditationSteps(models.Model):
         if self.meditation and self.meditation_template:
             raise ValidationError("A meditation step cannot be associated with both a Meditation and a MeditationTemplate.")
         if self.meditation_template:
-            allowed_steps = [MeditationStep.INTRODUCTION, MeditationStep.VISUALIZATION, MeditationStep.CONCLUSION]
+            allowed_steps = [MeditationStep.INTRODUCTION, MeditationStep.TRANSITION, MeditationStep.CONCLUSION]
             if self.step_type not in allowed_steps:
                 raise ValidationError(f"MeditationTemplate steps only support step types: {', '.join(allowed_steps)}")
 

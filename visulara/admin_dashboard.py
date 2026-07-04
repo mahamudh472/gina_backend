@@ -80,7 +80,7 @@ def dashboard_callback(request, context):
     template_status = []
     required_steps = {
         MeditationStep.INTRODUCTION,
-        MeditationStep.VISUALIZATION,
+        MeditationStep.TRANSITION,
         MeditationStep.CONCLUSION
     }
 
@@ -101,7 +101,7 @@ def dashboard_callback(request, context):
                     "label": combo_label,
                     "status": "missing_template",
                     "status_label": f"No active template for {voice.name}",
-                    "missing": ["Introduction", "Visualization", "Conclusion"],
+                    "missing": ["Introduction", "Transition", "Conclusion"],
                     "href": _admin_url("main_meditationtemplate_add") + f"?category={value}&charecter_voice={voice.id}",
                 })
             else:
@@ -120,7 +120,7 @@ def dashboard_callback(request, context):
                 else:
                     step_labels = {
                         MeditationStep.INTRODUCTION: "Introduction",
-                        MeditationStep.VISUALIZATION: "Visualization",
+                        MeditationStep.TRANSITION: "Transition",
                         MeditationStep.CONCLUSION: "Conclusion"
                     }
                     missing_labels = [step_labels[st] for st in required_steps if st in missing_types]

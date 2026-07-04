@@ -17,6 +17,7 @@ AI_STEP_ORDER = [
     "personal_reflection",
     "suggestion",
     "affirmation",
+    "visualization",
 ]
 
 DJANGO_STEP_ORDER = [
@@ -24,6 +25,7 @@ DJANGO_STEP_ORDER = [
     MeditationStep.PERSONAL,
     MeditationStep.SUGGESTION,
     MeditationStep.CONFIRMATION,
+    MeditationStep.VISUALIZATION,
 ]
 
 CATEGORY_LABELS = {
@@ -279,6 +281,21 @@ def build_prompt(data: dict[str, Any]) -> str:
     - Visualisierung: {guidance["visualization"]}
     - Affirmation: {guidance["affirmation"]}
 
+    ## Spezifische Anforderungen fuer die AI-generierten Schritte:
+    - **greeting**: Eine herzliche, personalisierte Begrüßung für den Nutzer.
+    - **personal_reflection**: Ein personalisierter Hauptteil, der auf die spezifische Situation, Emotionen und Ziele des Nutzers eingeht.
+    - **suggestion**: Muss als nahtlose Schleife (Loop) konzipiert sein. Das bedeutet:
+      - Kein klarer Anfang und kein klares Ende.
+      - Besteht aus kurzen rhythmischen Sätzen.
+      - Enthält bewusste Sprechpausen.
+      - Erzeugt einen ruhigen, kontinuierlichen Redefluss, der sich für eine ständige Wiederholung eignet.
+    - **affirmation**: Muss ebenfalls als nahtlose Schleife (Loop) für ständige Wiederholung konzipiert sein. Das bedeutet:
+      - Kein klarer Anfang und kein klares Ende.
+      - Besteht aus kurzen rhythmischen Sätzen.
+      - Enthält bewusste Sprechpausen.
+      - Erzeugt einen ruhigen, kontinuierlichen Redefluss.
+    - **visualization**: Konzentriert sich ausschließlich auf die ausgewählte Visualisierungslandschaft ({data["landscape"] or "Nicht angegeben"}). Integriere den gewählten Naturklang ({data["nature_sound"] or "Nicht angegeben"}) natürlich und harmonisch durchgehend in die Beschreibung der Visualisierung.
+
     Pflichtanforderungen:
     1. Erstelle einzigartige, poetische Inhalte — keine statische Vorlage.
     2. Nutze genau diese Reihenfolge: {", ".join(AI_STEP_ORDER)}.
@@ -293,7 +310,11 @@ def build_prompt(data: dict[str, Any]) -> str:
     "summary": "string",
     "total_duration": {total_duration},
     "steps": [
-        {{"step_type": "greeting", "content": "string", "duration": 60, "start_time": 0, "end_time": 60}}
+        {{"step_type": "greeting", "content": "string", "duration": 60, "start_time": 0, "end_time": 60}},
+        {{"step_type": "personal_reflection", "content": "string", "duration": 60, "start_time": 60, "end_time": 120}},
+        {{"step_type": "suggestion", "content": "string", "duration": 120, "start_time": 120, "end_time": 240}},
+        {{"step_type": "affirmation", "content": "string", "duration": 60, "start_time": 240, "end_time": 300}},
+        {{"step_type": "visualization", "content": "string", "duration": 120, "start_time": 300, "end_time": 420}}
     ]
     }}
     """

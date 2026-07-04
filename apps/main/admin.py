@@ -5,7 +5,8 @@ from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import display
 from unfold.widgets import UnfoldAdminFileFieldWidget
 
-from .models import CharecterVoice, NatureSounds, BackgroundImage, Meditation, MeditationSteps, Music, MeditationTemplate, MeditationStep
+from django import forms
+from .models import CharecterVoice, NatureSounds, BackgroundImage, Meditation, MeditationSteps, Music, MeditationTemplate, MeditationStep, MeditationCategory
 
 
 class UnfoldAdminAudioFileWidget(UnfoldAdminFileFieldWidget):
@@ -164,8 +165,24 @@ class MusicAdmin(AudioAdminMixin, ModelAdmin):
         return obj.is_active, 'Active' if obj.is_active else 'Inactive'
 
 
+class MeditationTemplateStepForm(forms.ModelForm):
+    class Meta:
+        model = MeditationSteps
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        allowed_steps = [MeditationStep.INTRODUCTION, MeditationStep.TRANSITION, MeditationStep.CONCLUSION]
+        self.fields['step_type'].choices = [
+            (choice_val, f"{choice_val} - {choice_label}")
+            for choice_val, choice_label in MeditationStep.choices
+            if choice_val in allowed_steps
+        ]
+
+
 class MeditationTemplateStepsInline(AudioAdminMixin, TabularInline):
     model = MeditationSteps
+    form = MeditationTemplateStepForm
     extra = 0
     fields = ['step_type', 'content', 'duration', 'audio_file', 'created_at']
     readonly_fields = ['created_at']
@@ -174,7 +191,21 @@ class MeditationTemplateStepsInline(AudioAdminMixin, TabularInline):
     tab = True
 
 
+class MeditationTemplateForm(forms.ModelForm):
+    class Meta:
+        model = MeditationTemplate
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['category'].choices = [
+            (choice_val, f"{choice_val} - {choice_label}")
+            for choice_val, choice_label in MeditationCategory.choices
+        ]
+
+
 class MeditationTemplateAdmin(ModelAdmin):
+    form = MeditationTemplateForm
     list_display = ['category_badge', 'charecter_voice', 'active_status', 'steps_configured', 'created_at']
     list_filter = ['is_active', 'category', 'charecter_voice']
     ordering = ['category', 'charecter_voice', '-created_at']
@@ -203,10 +234,10 @@ class MeditationTemplateAdmin(ModelAdmin):
     @display(description='Steps Configured')
     def steps_configured(self, obj):
         steps = list(obj.steps.values_list('step_type', flat=True))
-        required = [MeditationStep.INTRODUCTION, MeditationStep.VISUALIZATION, MeditationStep.CONCLUSION]
+        required = [MeditationStep.INTRODUCTION, MeditationStep.TRANSITION, MeditationStep.CONCLUSION]
         step_names = {
             MeditationStep.INTRODUCTION: 'Intro',
-            MeditationStep.VISUALIZATION: 'Viz',
+            MeditationStep.TRANSITION: 'Trans',
             MeditationStep.CONCLUSION: 'Outro'
         }
         parts = []
