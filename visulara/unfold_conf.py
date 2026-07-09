@@ -150,6 +150,11 @@ UNFOLD = {
                         "icon": "settings",
                         "link": "/admin/ai_service/ttssettings/",
                     },
+                    {
+                        "title": "Audio Generator",
+                        "icon": "volume_up",
+                        "link": "/admin/ai_service/generate-audio/",
+                    },
                 ],
             },
         ],

@@ -1,0 +1,212 @@
+{% extends 'admin/base.html' %}
+{% load i18n %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+    {% include "unfold/helpers/site_branding.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="vis-dashboard" style="max-width: 1200px; margin: 0 auto; padding: 1.5rem 1rem;">
+    <!-- Hero Banner -->
+    <div class="vis-dashboard__hero" style="margin-bottom: 1.5rem;">
+        <div>
+            <p class="vis-dashboard__eyebrow">Audio Assets</p>
+            <h1 style="color: #f8fafc; font-size: 2.2rem; font-weight: 800; margin-top: 0.25rem;">TTS Audio Generator</h1>
+            <p class="vis-dashboard__subtle">Compose text, select a voice, customize the ElevenLabs model settings, and generate a temporary preview audio file.</p>
+        </div>
+    </div>
+
+    <!-- Messages / Alerts (if any) -->
+    {% if messages %}
+        <div style="margin-bottom: 1.5rem;">
+            {% for message in messages %}
+                <div class="vis-pill {% if message.tags == 'error' %}vis-pill--danger{% else %}vis-pill--success{% endif %}" 
+                     style="width: 100%; display: block; padding: 1rem; border-radius: 8px; font-size: 0.95rem; font-weight: 500; text-align: left; line-height: 1.5; margin-bottom: 0.5rem; text-transform: none;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Generated Audio Player Section -->
+    {% if audio_url %}
+        <div class="vis-panel" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(15, 23, 42, 0.8)); border-color: rgba(34, 197, 94, 0.3); padding: 1.5rem;">
+            <div class="vis-panel__header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 1rem; padding-bottom: 0.75rem;">
+                <div>
+                    <h2 style="color: #4ade80; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="material-symbols-outlined" style="color: #4ade80; font-size: 1.5rem;">check_circle</span>
+                        Generated Audio Preview
+                    </h2>
+                    <p style="color: #94a3b8; font-size: 0.88rem; margin: 0.25rem 0 0;">Temporary file generated successfully and is ready for playback or download.</p>
+                </div>
+            </div>
+            
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; justify-content: space-between;">
+                <!-- Audio Player -->
+                <div style="flex-grow: 1; min-width: 280px;">
+                    <audio src="{{ audio_url }}" id="audio-preview-player" controls style="width: 100%; height: 44px; border-radius: 8px; background: #1e293b;"></audio>
+                </div>
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 0.75rem;">
+                    <a href="{{ audio_url }}" download class="bg-primary-600" 
+                       style="background-color: #d6a93b; color: #111827; padding: 0.65rem 1.25rem; border-radius: 8px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; border: 1px solid #d6a93b; cursor: pointer; transition: all 140ms ease;">
+                        <span class="material-symbols-outlined" style="font-size: 1.2rem;">download</span>
+                        Download MP3
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Main Grid Form -->
+    <form method="post" action="{% url 'admin_generate_audio' %}" style="display: grid; gap: 1.5rem; grid-template-columns: repeat(3, minmax(0, 1fr));">
+        {% csrf_token %}
+        
+        <!-- Left Panel: Script Content & Voice (spans 2 columns) -->
+        <div class="vis-panel" style="grid-column: span 2; display: flex; flex-direction: column; gap: 1.25rem; padding: 1.5rem;">
+            <div class="vis-panel__header" style="margin-bottom: 0.5rem;">
+                <div>
+                    <h2 style="font-size: 1.2rem;">Script & Voice Selection</h2>
+                    <p>Provide the text to be spoken and select the character voice profile.</p>
+                </div>
+            </div>
+
+            <!-- Voice Selection -->
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="voice_id" style="color: #e2e8f0; font-size: 0.9rem; font-weight: 600;">Character Voice</label>
+                <select name="voice_id" id="voice_id" style="width: 100%; padding: 0.65rem; background-color: #1e293b; border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0; border-radius: 8px;">
+                    <option value="" {% if not voice_id %}selected{% endif %}>-- Select Voice --</option>
+                    {% for voice in voices %}
+                        <option value="{{ voice.elevenlabs_voice_id }}" {% if voice.elevenlabs_voice_id == voice_id %}selected{% endif %}>
+                            {{ voice.name }} {% if voice.elevenlabs_voice_id %}({{ voice.elevenlabs_voice_id }}){% else %}(No Voice ID){% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+                <small style="color: #94a3b8; font-size: 0.8rem;">Select from active Character Voice profiles configured in the system database.</small>
+            </div>
+
+            <!-- Custom Voice ID Override -->
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="custom_voice_id" style="color: #e2e8f0; font-size: 0.9rem; font-weight: 600;">Custom ElevenLabs Voice ID (Optional)</label>
+                <input type="text" id="custom_voice_id" placeholder="e.g. 21m00Tcm4TlvDq8ikWAM" 
+                       style="width: 100%; padding: 0.65rem; background-color: #1e293b; border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0; border-radius: 8px;"
+                       oninput="handleCustomVoiceInput(this.value)">
+                <small style="color: #94a3b8; font-size: 0.8rem;">Overrides the selected character voice above if provided. Entering a value here will automatically select or custom-set the voice ID.</small>
+            </div>
+
+            <!-- Script Text -->
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; flex-grow: 1;">
+                <label for="text" style="color: #e2e8f0; font-size: 0.9rem; font-weight: 600;">Script Text</label>
+                <textarea name="text" id="text" placeholder="Write or paste your meditation/step script here..." 
+                          style="width: 100%; padding: 0.8rem; background-color: #1e293b; border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 0.95rem; line-height: 1.6; resize: vertical; min-height: 14rem;" required>{{ text }}</textarea>
+                <small style="color: #94a3b8; font-size: 0.8rem;">Supports plain text. Note: XML/SSML tags will be normalized by the service logic before generating.</small>
+            </div>
+        </div>
+
+        <!-- Right Panel: TTS Parameter overrides (spans 1 column) -->
+        <div class="vis-panel" style="grid-column: span 1; display: flex; flex-direction: column; gap: 1.25rem; padding: 1.5rem;">
+            <div class="vis-panel__header" style="margin-bottom: 0.5rem;">
+                <div>
+                    <h2 style="font-size: 1.2rem;">TTS Model Settings</h2>
+                    <p>Tweak ElevenLabs parameter settings for this generation session.</p>
+                </div>
+            </div>
+
+            <!-- Stability Slider -->
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label for="stability" style="color: #e2e8f0; font-size: 0.88rem; font-weight: 600;">Stability</label>
+                    <span id="stability_val" style="color: #d6a93b; font-size: 0.9rem; font-weight: 700;">{{ stability|floatformat:2 }}</span>
+                </div>
+                <input type="range" name="stability" id="stability" min="0.0" max="1.0" step="0.01" value="{{ stability }}" 
+                       style="accent-color: #d6a93b; cursor: pointer;"
+                       oninput="document.getElementById('stability_val').innerText = parseFloat(this.value).toFixed(2)">
+                <small style="color: #94a3b8; font-size: 0.78rem;">Lower values lead to more expressive and animated speech, while higher values lead to more stable and consistent speech.</small>
+            </div>
+
+            <!-- Similarity Boost Slider -->
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label for="similarity_boost" style="color: #e2e8f0; font-size: 0.88rem; font-weight: 600;">Clarity / Similarity</label>
+                    <span id="similarity_boost_val" style="color: #d6a93b; font-size: 0.9rem; font-weight: 700;">{{ similarity_boost|floatformat:2 }}</span>
+                </div>
+                <input type="range" name="similarity_boost" id="similarity_boost" min="0.0" max="1.0" step="0.01" value="{{ similarity_boost }}" 
+                       style="accent-color: #d6a93b; cursor: pointer;"
+                       oninput="document.getElementById('similarity_boost_val').innerText = parseFloat(this.value).toFixed(2)">
+                <small style="color: #94a3b8; font-size: 0.78rem;">Higher values boost the voice similarity to the original profile, but setting it too high might cause audio artifacts.</small>
+            </div>
+
+            <!-- Style Slider -->
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label for="style" style="color: #e2e8f0; font-size: 0.88rem; font-weight: 600;">Exaggeration / Style</label>
+                    <span id="style_val" style="color: #d6a93b; font-size: 0.9rem; font-weight: 700;">{{ style|floatformat:2 }}</span>
+                </div>
+                <input type="range" name="style" id="style" min="0.0" max="1.0" step="0.01" value="{{ style }}" 
+                       style="accent-color: #d6a93b; cursor: pointer;"
+                       oninput="document.getElementById('style_val').innerText = parseFloat(this.value).toFixed(2)">
+                <small style="color: #94a3b8; font-size: 0.78rem;">Amplifies the style and emotional output of the voice, making it more dramatic. (Usually set around 0.0-0.5 for narration).</small>
+            </div>
+
+            <!-- Speaker Boost Checkbox -->
+            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; margin-top: 0.25rem;">
+                <input type="checkbox" name="use_speaker_boost" id="use_speaker_boost" {% if use_speaker_boost %}checked{% endif %}
+                       style="accent-color: #d6a93b; width: 1.1rem; height: 1.1rem; cursor: pointer; border-radius: 4px;">
+                <label for="use_speaker_boost" style="color: #e2e8f0; font-size: 0.88rem; font-weight: 600; cursor: pointer; user-select: none;">Use Speaker Boost</label>
+            </div>
+            <small style="color: #94a3b8; font-size: 0.78rem; margin-top: -0.75rem;">Maintains the speaker's tone and style characteristics. Adds slight processing latency.</small>
+
+            <!-- Buttons -->
+            <div style="margin-top: auto; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 1rem;">
+                <button type="submit" name="action" value="generate" class="bg-primary-600"
+                        style="background-color: #d6a93b; color: #111827; border: none; padding: 0.8rem; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(214, 169, 59, 0.2); transition: all 140ms ease;">
+                    Generate Audio
+                </button>
+                <button type="submit" name="action" value="reset" 
+                        style="background-color: transparent; color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 0.65rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.9rem; transition: all 140ms ease;">
+                    Reset to Defaults
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- JS helper to automatically populate voice ID selection if custom is written, and vice versa -->
+<script>
+    function handleCustomVoiceInput(val) {
+        const select = document.getElementById('voice_id');
+        if (val.trim() !== '') {
+            // Find option in select that matches this value
+            let found = false;
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === val.trim()) {
+                    select.selectedIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+            // If not found, we can keep the custom value and let it override on the backend
+            if (!found) {
+                // Set selection to blank so it doesn't conflict
+                select.value = '';
+            }
+        }
+    }
+    
+    // Set custom voice ID text input on page load if voice_id matches one of the options but is overridden
+    window.addEventListener('DOMContentLoaded', () => {
+        const select = document.getElementById('voice_id');
+        const customInput = document.getElementById('custom_voice_id');
+        if (select.value) {
+            customInput.value = select.value;
+        }
+    });
+
+    // When dropdown changes, update the custom voice text input to match
+    document.getElementById('voice_id').addEventListener('change', function() {
+        document.getElementById('custom_voice_id').value = this.value;
+    });
+</script>
+{% endblock %}

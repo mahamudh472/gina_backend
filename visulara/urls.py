@@ -16,8 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from apps.ai_service.views import generate_audio_admin_view
 
 urlpatterns = [
+    path('admin/ai_service/generate-audio/', admin.site.admin_view(generate_audio_admin_view), name='admin_generate_audio'),
     path('admin/', admin.site.urls),
     path('api/v1/accounts/', include('apps.accounts.urls')),
     path('api/v1/', include('apps.main.urls')),
