@@ -123,7 +123,7 @@ class MeditationGenerationTests(APITestCase):
 
         # Verify steps
         steps = res_data['steps']
-        self.assertEqual(len(steps), 8)
+        self.assertEqual(len(steps), 9)
         
         # Verify step types and percentages
         expected_steps = [
@@ -132,7 +132,8 @@ class MeditationGenerationTests(APITestCase):
             (MeditationStep.TRANSITION, 10.0),
             (MeditationStep.PERSONAL, 10.0),
             (MeditationStep.SUGGESTION, 20.0),
-            (MeditationStep.CONFIRMATION, 10.0),
+            (MeditationStep.CONFIRMATION_TRANSITION, 3.33),
+            (MeditationStep.CONFIRMATION, 6.67),
             (MeditationStep.VISUALIZATION, 20.0),
             (MeditationStep.CONCLUSION, 7.5),
         ]
@@ -142,10 +143,10 @@ class MeditationGenerationTests(APITestCase):
             self.assertEqual(step['step_type'], step_type)
             self.assertEqual(step['duration_percentage'], expected_percent)
 
-        # Assert DB items exist (only the 5 AI steps are in the DB)
+        # Assert DB items exist (only the 6 AI steps are in the DB)
         meditation = Meditation.objects.get(id=res_data['id'])
-        self.assertEqual(meditation.steps.count(), 5)
-        self.assertEqual(len(meditation.get_combined_steps()), 8)
+        self.assertEqual(meditation.steps.count(), 6)
+        self.assertEqual(len(meditation.get_combined_steps()), 9)
         self.assertGreater(meditation.total_duration, datetime.timedelta(seconds=0))
 
     def test_generate_meditation_nature_sound_not_found(self):

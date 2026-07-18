@@ -151,7 +151,8 @@ def _generate_static_meditation_steps(category: str, q_a: Any) -> Tuple[str, Lis
         {"step_type": MeditationStep.GREETING, "content": theme["greeting"], "duration": datetime.timedelta(seconds=45)},
         {"step_type": MeditationStep.PERSONAL, "content": theme["personal"], "duration": datetime.timedelta(seconds=60)},
         {"step_type": MeditationStep.SUGGESTION, "content": theme["suggestion"], "duration": datetime.timedelta(seconds=120)},
-        {"step_type": MeditationStep.CONFIRMATION, "content": theme["confirmation"], "duration": datetime.timedelta(seconds=60)},
+        {"step_type": MeditationStep.CONFIRMATION_TRANSITION, "content": "Wenn du diese Erfahrung noch weiter vertiefen möchtest, erlaube diesen Affirmationen, sanft Teil deiner inneren Wahrheit zu werden. Höre einfach zu, atme und lass jede Affirmation in dir nachklingen.", "duration": datetime.timedelta(seconds=20)},
+        {"step_type": MeditationStep.CONFIRMATION, "content": theme["confirmation"], "duration": datetime.timedelta(seconds=40)},
         {"step_type": MeditationStep.VISUALIZATION, "content": theme["visualization"], "duration": datetime.timedelta(seconds=120)},
     ]
 

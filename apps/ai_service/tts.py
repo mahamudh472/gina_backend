@@ -48,6 +48,14 @@ def generate_step_audio(
     if not api_key:
         raise TTSGenerationError("TTS_API_KEY is not configured.")
 
+    if re.search(r'\[\[pause_\d+s\]\]', text, re.IGNORECASE):
+        return _generate_audio_with_pauses(
+            text=text,
+            voice_name=voice_name,
+            voice_id=resolved_voice_id,
+            tts_settings=tts_settings,
+        )
+
     audio_bytes = _generate_elevenlabs_audio(
         text=text,
         voice_id=resolved_voice_id,
@@ -56,6 +64,118 @@ def generate_step_audio(
     )
 
     return audio_bytes
+
+
+def _generate_audio_with_pauses(
+    *,
+    text: str,
+    voice_name: str,
+    voice_id: str | None,
+    tts_settings: dict[str, Any] | None,
+) -> bytes:
+    pattern = r'\[\[pause_(\d+)s\]\]'
+    parts = re.split(pattern, text, flags=re.IGNORECASE)
+    
+    segments = []
+    for i, part in enumerate(parts):
+        if i % 2 == 0:
+            cleaned = part.strip()
+            if cleaned:
+                segments.append({"type": "text", "content": cleaned})
+        else:
+            seconds = int(part)
+            if seconds > 0:
+                segments.append({"type": "pause", "duration": seconds})
+                
+    if not segments:
+        raise TTSGenerationError("No audio content or pauses generated.")
+        
+    has_pause = any(seg["type"] == "pause" for seg in segments)
+    if not has_pause:
+        clean_text = re.sub(r'\[\[pause_\d+s\]\]', "", text, flags=re.IGNORECASE).strip()
+        api_key = getattr(settings, "TTS_API_KEY", None)
+        resolved_voice_id = voice_id or resolve_voice_id(voice_name)
+        return _generate_elevenlabs_audio(
+            text=clean_text,
+            voice_id=resolved_voice_id,
+            api_key=api_key,
+            tts_settings=tts_settings,
+        ) or b""
+
+    temp_files = []
+    try:
+        for idx, seg in enumerate(segments):
+            temp_file = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+            temp_file.close()
+            temp_files.append(temp_file.name)
+            
+            if seg["type"] == "text":
+                resolved_voice_id = voice_id or resolve_voice_id(voice_name)
+                api_key = getattr(settings, "TTS_API_KEY", None)
+                audio_bytes = _generate_elevenlabs_audio(
+                    text=seg["content"],
+                    voice_id=resolved_voice_id,
+                    api_key=api_key,
+                    tts_settings=tts_settings,
+                )
+                if not audio_bytes:
+                    raise TTSGenerationError("Failed to generate audio for text segment.")
+                with open(temp_file.name, "wb") as f:
+                    f.write(audio_bytes)
+            elif seg["type"] == "pause":
+                duration = seg["duration"]
+                cmd = [
+                    "ffmpeg",
+                    "-y",
+                    "-f", "lavfi",
+                    "-i", "anullsrc=r=44100:cl=stereo",
+                    "-t", str(duration),
+                    "-acodec", "libmp3lame",
+                    "-q:a", "9",
+                    temp_file.name
+                ]
+                res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if res.returncode != 0:
+                    raise TTSGenerationError(f"FFmpeg silence generation failed: {res.stderr.decode('utf-8')}")
+
+        out_file = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+        out_file.close()
+        
+        cmd = ["ffmpeg", "-y"]
+        for tf in temp_files:
+            cmd.extend(["-i", tf])
+            
+        filter_str = ""
+        for i in range(len(temp_files)):
+            filter_str += f"[{i}:a]aresample=async=1:och=stereo:osr=44100[a{i}];"
+        for i in range(len(temp_files)):
+            filter_str += f"[a{i}]"
+        filter_str += f"concat=n={len(temp_files)}:v=0:a=1[a]"
+        
+        cmd.extend([
+            "-filter_complex", filter_str,
+            "-map", "[a]",
+            "-acodec", "libmp3lame",
+            "-q:a", "2",
+            out_file.name
+        ])
+        
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if res.returncode != 0:
+            raise TTSGenerationError(f"FFmpeg concatenation failed: {res.stderr.decode('utf-8')}")
+            
+        with open(out_file.name, "rb") as f:
+            concatenated_bytes = f.read()
+            
+        os.unlink(out_file.name)
+        return concatenated_bytes
+
+    finally:
+        for tf in temp_files:
+            try:
+                os.unlink(tf)
+            except Exception:
+                pass
 
 
 def get_audio_duration(audio_bytes: bytes) -> float | None:
@@ -235,4 +355,3 @@ def _normalize_meditation_text(text: str) -> str:
     text = text.replace('? ', '... .   ')
     
     return text.strip()
-
