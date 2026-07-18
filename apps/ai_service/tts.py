@@ -147,7 +147,7 @@ def _generate_audio_with_pauses(
             
         filter_str = ""
         for i in range(len(temp_files)):
-            filter_str += f"[{i}:a]aresample=async=1:och=stereo:osr=44100[a{i}];"
+            filter_str += f"[{i}:a]aformat=sample_rates=44100:channel_layouts=stereo[a{i}];"
         for i in range(len(temp_files)):
             filter_str += f"[a{i}]"
         filter_str += f"concat=n={len(temp_files)}:v=0:a=1[a]"
