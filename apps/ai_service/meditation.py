@@ -16,7 +16,6 @@ AI_STEP_ORDER = [
     "greeting",
     "personal_reflection",
     "suggestion",
-    "affirmation_transition",
     "affirmation",
     "visualization",
 ]
@@ -25,7 +24,6 @@ DJANGO_STEP_ORDER = [
     MeditationStep.GREETING,
     MeditationStep.PERSONAL,
     MeditationStep.SUGGESTION,
-    MeditationStep.CONFIRMATION_TRANSITION,
     MeditationStep.CONFIRMATION,
     MeditationStep.VISUALIZATION,
 ]
@@ -301,19 +299,14 @@ def build_prompt(data: dict[str, Any]) -> str:
     - **Beispiel**:
       "Lass diese Gedanken nun ganz sanft in dein Unterbewusstsein sinken. [[PAUSE_4S]] Du bist vollkommen sicher. [[PAUSE_4S]] Mit jedem Atemzug entspannt sich dein Körper mehr. [[PAUSE_4S]] Vertrauen wächst in dir. [[PAUSE_4S]]"
 
-    ## D: affirmation_transition (Affirmation Transition)
-    - **Zweck**: Einmaliger, sanfter Übergang zur Affirmationsphase.
-    - **Aufgabe**: Generiere einen kurzen, stimmigen Übergangssatz (z.B. "Wenn du diese Erfahrung noch weiter vertiefen möchtest, erlaube diesen Affirmationen, sanft Teil deiner inneren Wahrheit zu werden. Höre einfach zu, atme und lass jede Affirmation in dir nachklingen.").
-    - **Wichtig**: Dieser Text wird NUR EINMAL abgespielt und darf KEINE Affirmationen enthalten. Er wird nicht geloopt.
-
-    ## E: affirmation (Affirmations Loop)
+    ## D: affirmation (Affirmations Loop)
     - **Zweck**: Wiederholbare Affirmationen zur Verankerung des Meditationsziels ({data["goal"]}).
     - **Aufgabe**: Generiere 2-3 kurze, kraftvolle Affirmationssätze basierend auf dem Ziel. Sie müssen loopbar sein (kein Intro/Outro).
     - **Pausen**: Setze nach JEDER Affirmation (auch der letzten) den Pausen-Marker `[[PAUSE_4S]]` ein.
     - **Beispiel**:
       "Ich bin ruhig und geschützt. [[PAUSE_4S]] Ich vertraue dem Fluss meines Lebens. [[PAUSE_4S]]"
 
-    ## F: visualization (Generated Journey / Power Landscape)
+    ## E: visualization (Generated Journey / Power Landscape)
     - **Zweck**: Emotionaler Höhepunkt in der ausgewählten Landschaft ({data["landscape"] or "Nicht angegeben"}).
     - **Dauer**: Ca. 4-6 Minuten spoken audio (Wortanzahl ca. 450-700 Wörter).
     - **Aufgabe**: Führe den Nutzer in eine emotionale Innenreise. Nutze die ausgewählte Landschaft ({data["landscape"]}) als aktive therapeutische Umgebung, die die gewünschte emotionale Transformation (Ziel: {data["goal"]}, aktuelle Stimmung zu gewünschtem emotionalen Zustand) unterstützt:
@@ -346,9 +339,8 @@ def build_prompt(data: dict[str, Any]) -> str:
         {{"step_type": "greeting", "content": "string", "duration": 60, "start_time": 0, "end_time": 60}},
         {{"step_type": "personal_reflection", "content": "string", "duration": 240, "start_time": 60, "end_time": 300}},
         {{"step_type": "suggestion", "content": "string", "duration": 120, "start_time": 300, "end_time": 420}},
-        {{"step_type": "affirmation_transition", "content": "string", "duration": 30, "start_time": 420, "end_time": 450}},
-        {{"step_type": "affirmation", "content": "string", "duration": 60, "start_time": 450, "end_time": 510}},
-        {{"step_type": "visualization", "content": "string", "duration": 240, "start_time": 510, "end_time": 750}}
+        {{"step_type": "affirmation", "content": "string", "duration": 60, "start_time": 420, "end_time": 480}},
+        {{"step_type": "visualization", "content": "string", "duration": 240, "start_time": 480, "end_time": 720}}
     ]
     }}
     """
@@ -429,8 +421,6 @@ def _map_ai_step_to_django_step(step_type: str) -> str:
         return MeditationStep.INTRODUCTION
     if normalized == "suggestion":
         return MeditationStep.SUGGESTION
-    if normalized == "affirmation_transition":
-        return MeditationStep.CONFIRMATION_TRANSITION
     if normalized in {"affirmation", "confirmation"}:
         return MeditationStep.CONFIRMATION
     if normalized == "visualization":

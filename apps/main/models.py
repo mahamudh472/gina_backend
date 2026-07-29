@@ -55,7 +55,6 @@ class MeditationStep(models.TextChoices):
     INTRODUCTION = "introduction", "Einführung"
     TRANSITION = "transition", "Übergang"
     SUGGESTION = "suggestion", "Vorschlag"
-    CONFIRMATION_TRANSITION = "confirmation_transition", "Bestätigung Übergang"
     CONFIRMATION = "confirmation", "Bestätigung"
     VISUALIZATION = "visualization", "Visualisierung"
     CONCLUSION = "conclusion", "Abschluss"   
@@ -121,7 +120,6 @@ class Meditation(models.Model):
             MeditationStep.TRANSITION,
             MeditationStep.PERSONAL,
             MeditationStep.SUGGESTION,
-            MeditationStep.CONFIRMATION_TRANSITION,
             MeditationStep.CONFIRMATION,
             MeditationStep.VISUALIZATION,
             MeditationStep.CONCLUSION,
