@@ -38,3 +38,38 @@ class TTSSettings(models.Model):
 
     def __str__(self):
         return f"Global TTS Settings (Stability: {self.stability}, Similarity Boost: {self.similarity_boost}, Style: {self.style}, Speaker Boost: {self.use_speaker_boost})"
+
+
+class MeditationPrompt(models.Model):
+    name = models.CharField(max_length=255)
+    prompt_template = models.TextField()
+    is_active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Meditation Prompt"
+        verbose_name_plural = "Meditation Prompts"
+
+    def save(self, *args, **kwargs):
+        if self.is_active:
+            # Set all other instances to inactive
+            MeditationPrompt.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+        else:
+            # Enforce at least one active prompt if any exist
+            if not MeditationPrompt.objects.filter(is_active=True).exclude(pk=self.pk).exists():
+                self.is_active = True
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        was_active = self.is_active
+        super().delete(*args, **kwargs)
+        if was_active:
+            # Find another prompt and make it active
+            another = MeditationPrompt.objects.first()
+            if another:
+                another.is_active = True
+                another.save()
+
+    def __str__(self):
+        return f"{self.name} ({'Active' if self.is_active else 'Inactive'})"

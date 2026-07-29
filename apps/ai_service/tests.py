@@ -237,3 +237,112 @@ class AdminAudioGeneratorTests(TestCase):
         self.assertNotIn("tts_stability", session_after)
         self.assertNotIn("tts_text", session_after)
 
+
+from apps.ai_service.models import MeditationPrompt
+from apps.ai_service.meditation import build_prompt, DEFAULT_PROMPT_TEMPLATE
+
+class MeditationPromptTests(TestCase):
+    def test_singleton_active_prompt_saving(self):
+        # Clean up any prompts created by data migrations first
+        MeditationPrompt.objects.all().delete()
+
+        # Create first active prompt
+        prompt1 = MeditationPrompt.objects.create(
+            name="Prompt 1",
+            prompt_template="Template 1 {user_name}",
+            is_active=True
+        )
+        self.assertTrue(prompt1.is_active)
+
+        # Create second active prompt
+        prompt2 = MeditationPrompt.objects.create(
+            name="Prompt 2",
+            prompt_template="Template 2 {user_name}",
+            is_active=True
+        )
+        # prompt1 should now be deactivated
+        prompt1.refresh_from_db()
+        self.assertFalse(prompt1.is_active)
+        self.assertTrue(prompt2.is_active)
+
+        # Ensure only one is active in DB
+        self.assertEqual(MeditationPrompt.objects.filter(is_active=True).count(), 1)
+
+    def test_singleton_active_prompt_deletion(self):
+        # Clean up existing prompts
+        MeditationPrompt.objects.all().delete()
+
+        # Create two prompts
+        prompt1 = MeditationPrompt.objects.create(
+            name="Prompt 1",
+            prompt_template="Template 1 {user_name}",
+            is_active=True
+        )
+        prompt2 = MeditationPrompt.objects.create(
+            name="Prompt 2",
+            prompt_template="Template 2 {user_name}",
+            is_active=False
+        )
+
+        # Delete active prompt
+        prompt1.delete()
+
+        # prompt2 should automatically become active
+        prompt2.refresh_from_db()
+        self.assertTrue(prompt2.is_active)
+        self.assertEqual(MeditationPrompt.objects.filter(is_active=True).count(), 1)
+
+    def test_build_prompt_uses_active_prompt_from_db(self):
+        # Clean up existing prompts
+        MeditationPrompt.objects.all().delete()
+
+        # Create active prompt
+        MeditationPrompt.objects.create(
+            name="Custom Prompt",
+            prompt_template="Hello {user_name}, you chose {category_label}.",
+            is_active=True
+        )
+
+        data = {
+            "category": "relaxation",
+            "category_label": "Entspannung",
+            "user_name": "Anna",
+            "goal": "Stress abbauen",
+            "avoid": "Sorgen",
+            "duration": 10,
+            "experience": "intermediate",
+            "body_tension": ["Nacken"],
+            "nature_sound": "ocean",
+            "landscape": "beach",
+            "voice_name": "Aura",
+            "questionnaire_answers": {}
+        }
+
+        prompt = build_prompt(data)
+        self.assertEqual(prompt, "Hello Anna, you chose Entspannung.")
+
+    def test_build_prompt_fallback_to_default(self):
+        # Clean up existing prompts
+        MeditationPrompt.objects.all().delete()
+
+        data = {
+            "category": "relaxation",
+            "category_label": "Entspannung",
+            "user_name": "Anna",
+            "goal": "Stress abbauen",
+            "avoid": "Sorgen",
+            "duration": 10,
+            "experience": "intermediate",
+            "body_tension": ["Nacken"],
+            "nature_sound": "ocean",
+            "landscape": "beach",
+            "voice_name": "Aura",
+            "questionnaire_answers": {}
+        }
+
+        # No active prompt in DB, should use fallback
+        prompt = build_prompt(data)
+        self.assertIn("Du bist eine weltklasse Meditationslehrerin", prompt)
+        self.assertIn("Name: Anna", prompt)
+
+

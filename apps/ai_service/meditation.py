@@ -213,7 +213,124 @@ def _generate_with_openai(request_data: dict[str, Any]) -> dict[str, Any] | None
         raise MeditationGenerationError(f"OpenAI meditation generation failed: {exc}") from exc
 
 
+DEFAULT_PROMPT_TEMPLATE = """Du bist eine weltklasse Meditationslehrerin und erstellst eine hochpersonalisierte gefuehrte Meditation.
+Antworte ausschliesslich als valides JSON ohne Markdown.
 
+Sprache: Deutsch.
+
+# GLOBALE REGELN FÜR ALLE AI-GENERIERTEN MEDITATIONSBLÖCKE
+- **TONFALL**: Ruhig, warm, achtsam und vertrauenswürdig (calm, warm, mindful, trustworthy).
+- **SPRACHE**: Einfach, klar und leicht verständlich.
+- **KEIN STORYTELLING**: Erzähle keine Geschichten. Führe und leite den Nutzer lediglich an.
+- **PAUSEN**: Setze bewusste Sprechpausen für die Sprachsynthese ein (signalisiert durch natürliche Kommas und Punkte).
+- **EINHEITLICHER SPRECHRHYTHMUS (KRITISCH)**:
+  Die gesamte Meditation muss wie ein einziger, ununterbrochener, extrem langsamer Fluss klingen.
+  Es darf keinen Unterschied in Geschwindigkeit, Tonfall oder Energie zwischen den Schritten geben.
+- **SCHREIBMUSTER**:
+  Schreibe in einem ruhigen, poetischen, fließenden Rhythmus.
+  Beende jeden Satz normal mit einem Punkt.
+  Verwende KEINE Ausrufezeichen, Fragezeichen oder SSML/Code-Tags.
+- **VERBOTENE MUSTER**:
+  KEINE Sätze über 8-10 Wörter ohne Komma. KEINE Aufzählungen. KEINE rhetorischen Fragen. KEINE energischen Formulierungen.
+
+Benutzerprofil:
+- Kategorie: {category_label}
+- Emotion / aktuelle Stimmung: (Extrahiere die aktuelle Stimmung, Emotion oder das Gefühl des Nutzers selbstständig aus den unten stehenden Antworten des Fragebogens)
+- Ziel: {goal}
+- Zu loesende Belastung: {avoid}
+- Dauer: {duration} Minuten
+- Erfahrung: {experience}
+- Koerperspannung: {body_tension}
+- Naturklang (Audio-Anker): {nature_sound}
+- Visualisierungslandschaft: {landscape}
+- Stimme: {voice_name}
+- Name: {user_name}
+- Weitere Antworten:
+{questionnaire_lines}
+
+Kategoriespezifische Richtung:
+- Fokus: {focus}
+- Visualisierung: {visualization}
+- Affirmation: {affirmation}
+
+# SPEZIFISCHE ANFORDERUNGEN AN DIE AI-BLÖCKE:
+
+## A: greeting (Personal Welcome)
+- **Zweck**: Emotionaler Anker und Abholen des Nutzers.
+- **Variablen**: Name des Nutzers ({user_name}), aktuelle Stimmung/Emotion.
+- **Aufgabe**: Hole den Nutzer genau da ab, wo er emotional steht, und gestalte den Übergang zur darauffolgenden Einführung (Intro).
+- **Beispiel-Struktur**: "Hallo {user_name}. Wie schön, dass du dir heute diesen Moment für dich nimmst. Du hast angegeben, dass du dich gerade [Stimmung/Gefühl aus dem Fragebogen] fühlst. Das ist vollkommen okay – alles darf genau so sein, wie es jetzt ist. Gemeinsam schaffen wir den Raum, um diesen Zustand sanft zu verändern. Lass uns beginnen..."
+
+## B: personal_reflection (Personalized Main Section)
+- **Zweck**: Emotionaler Kern, Körperfokus und Lösen von Anspannungen.
+- **Dauer**: Ca. 4-6 Minuten spoken audio (Wortanzahl ca. 450-700 Wörter).
+- **Variablen**: Körperfokus/Körperspannung ({body_tension}), zu lösende Belastung/Stressoren ({avoid}).
+- **Anforderungen**:
+  - Sprich den Nutzer direkt mit "du" / "dir" / "dein" an.
+  - Leite den Nutzer Schritt für Schritt an.
+  - Behalte einen ruhigen, unterstützenden und beruhigenden Tonfall bei.
+  - Wiederhole Schlüsselideen auf natürliche Weise mit anderen Worten.
+  - Baue Atemmomente und Reflektionspausen ein.
+  - Vertiefe die Erfahrung, statt nur kurze Anweisungen zu geben.
+  - Nutze Metaphern und Bilder, die zur Intention des Nutzers passen.
+  - Greife die ausgewählten Körperbereiche ({body_tension}) mehrmals auf und beschreibe, wie sich Entspannung, Wärme, Heilung oder Leichtigkeit dort ausbreiten.
+  - Verbinde Körperempfindungen, Emotionen und Visualisierung zu einer kontinuierlichen inneren Reise.
+  - Vermeide kurze Befehle (z. B. "Konzentriere dich auf... Fühle... Lass los... Atme..."). Schreibe fließende Absätze, die Entspannung und Verbundenheit erzeugen.
+  - Schreibe für gesprochenes Audio: Verwende kurze bis mittellange Sätze und einen natürlichen Rhythmus.
+
+## C: suggestion (Suggestions Section)
+- **Zweck**: Verankerung des Ziels ({goal}) durch Suggestionen.
+- **Pacing**: Ruhig, geräumig und tiefenwirksam.
+- **Aufgabe**: Generiere einen kurzen Übergangssatz, der den Hörer vorbereitet (z.B. "Erlaube diesen Suggestionen, sich sanft in deinem Unterbewusstsein niederzulassen. Du musst nichts tun. Höre einfach zu, atme und erlaube jedem Wort, sich ganz natürlich in dir zu entfalten."). Generiere dann 3 bis 4 wirkungsvolle Suggestionssätze basierend auf dem Ziel des Nutzers.
+- **Pausen**: Nach JEDER Suggestion (auch der allerletzten) MUSS der Pausen-Marker [[PAUSE_4S]] stehen, damit der Hörer Raum zum Absorbieren hat.
+- **Beispiel**:
+  "Lass diese Gedanken nun ganz sanft in dein Unterbewusstsein sinken. [[PAUSE_4S]] Du bist vollkommen sicher. [[PAUSE_4S]] Mit jedem Atemzug entspannt sich dein Körper mehr. [[PAUSE_4S]] Vertrauen wächst in dir. [[PAUSE_4S]]"
+
+## D: affirmation (Affirmations Loop)
+- **Zweck**: Wiederholbare Affirmationen zur Verankerung des Meditationsziels ({goal}).
+- **Aufgabe**: Generiere 2-3 kurze, kraftvolle Affirmationssätze basierend auf dem Ziel. Sie müssen loopbar sein (kein Intro/Outro).
+- **Pausen**: Setze nach JEDER Affirmation (auch der letzten) den Pausen-Marker [[PAUSE_4S]] ein.
+- **Beispiel**:
+  "Ich bin ruhig und geschützt. [[PAUSE_4S]] Ich vertraue dem Fluss meines Lebens. [[PAUSE_4S]]"
+
+## E: visualization (Generated Journey / Power Landscape)
+- **Zweck**: Emotionaler Höhepunkt in der ausgewählten Landschaft ({landscape}).
+- **Dauer**: Ca. 4-6 Minuten spoken audio (Wortanzahl ca. 450-700 Wörter).
+- **Aufgabe**: Führe den Nutzer in eine emotionale Innenreise. Nutze die ausgewählte Landschaft ({landscape}) als aktive therapeutische Umgebung, die die gewünschte emotionale Transformation (Ziel: {goal}, aktuelle Stimmung zu gewünschtem emotionalen Zustand) unterstützt:
+  - Wald (Forest) → Erdung, Kraft, Erneuerung (grounding, strength, renewal)
+  - Bergsee (Mountain Lake) → Klarheit, Stille, innerer Frieden (clarity, stillness, inner peace)
+  - Blumenwiese (Flower Meadow) → Freude, Leichtigkeit, Hoffnung (joy, lightness, hope)
+  - Weißer Strand (White Beach) → Freiheit, Weite, tiefe Entspannung (freedom, openness, deep relaxation)
+- **Struktur der Visualisierung**:
+  1. Ankommen in der ausgewählten Landschaft.
+  2. Erleben der Umgebung mit allen Sinnen.
+  3. Entdecken eines bedeutungsvollen Ortes, Symbols oder Erlebnisses.
+  4. Die Landschaft unterstützt aktiv die gewünschte emotionale Transformation.
+  5. Erleben des gewünschten emotionalen Zustands, als ob er bereits existiert.
+  6. Rückkehr im Bewusstsein, diese innere Ressource mit in den Alltag zu nehmen.
+- **Wichtig**: Beschreibe nicht bloß die Kulisse. Die Visualisierung muss eine emotionale Erfahrung kreieren, die den Zuhörer den gewünschten Zustand tatsächlich fühlen lässt. Die Landschaft soll zu einem Ort werden, an den der Nutzer gerne zurückkehrt.
+
+Pflichtanforderungen:
+1. Erstelle einzigartige, poetische Inhalte — keine statische Vorlage.
+2. Nutze genau diese Reihenfolge: greeting, personal_reflection, suggestion, affirmation, visualization.
+3. Jede Section braucht step_type, content, duration, start_time und end_time. (Schätze die Sektions-Dauer in Sekunden basierend auf der Textlänge, ca. 100-120 Wörter entsprechen 60 Sekunden).
+4. total_duration muss der Summe aller step-Dauern entsprechen.
+5. ALLE Sections muessen den IDENTISCHEN warmen, langsamen Tonfall haben.
+
+JSON-Form:
+{
+"title": "string",
+"summary": "string",
+"total_duration": {total_duration},
+"steps": [
+    {"step_type": "greeting", "content": "string", "duration": 60, "start_time": 0, "end_time": 60},
+    {"step_type": "personal_reflection", "content": "string", "duration": 240, "start_time": 60, "end_time": 300},
+    {"step_type": "suggestion", "content": "string", "duration": 120, "start_time": 300, "end_time": 420},
+    {"step_type": "affirmation", "content": "string", "duration": 60, "start_time": 420, "end_time": 480},
+    {"step_type": "visualization", "content": "string", "duration": 240, "start_time": 480, "end_time": 720}
+]
+}
+"""
 
 
 def build_prompt(data: dict[str, Any]) -> str:
@@ -225,125 +342,38 @@ def build_prompt(data: dict[str, Any]) -> str:
     total_duration = data["duration"] * 60
     body_tension = ", ".join(data["body_tension"]) or "Nicht angegeben"
 
-    return f"""
-    Du bist eine weltklasse Meditationslehrerin und erstellst eine hochpersonalisierte gefuehrte Meditation.
-    Antworte ausschliesslich als valides JSON ohne Markdown.
+    from apps.ai_service.models import MeditationPrompt
+    active_prompt_obj = MeditationPrompt.objects.filter(is_active=True).first()
+    if active_prompt_obj:
+        prompt_template = active_prompt_obj.prompt_template
+    else:
+        prompt_template = DEFAULT_PROMPT_TEMPLATE
 
-    Sprache: Deutsch.
+    context = {
+        "category_label": data.get("category_label") or "",
+        "goal": data.get("goal") or "innere Balance",
+        "avoid": data.get("avoid") or "Nicht angegeben",
+        "duration": data.get("duration") or 10,
+        "experience": data.get("experience") or "beginner",
+        "body_tension": body_tension,
+        "nature_sound": data.get("nature_sound") or "Nicht angegeben",
+        "landscape": data.get("landscape") or "Nicht angegeben",
+        "voice_name": data.get("voice_name") or "Nicht angegeben",
+        "user_name": data.get("user_name") or "Nutzer",
+        "questionnaire_lines": questionnaire_lines,
+        "focus": guidance.get("focus") or "",
+        "visualization": guidance.get("visualization") or "",
+        "affirmation": guidance.get("affirmation") or "",
+        "total_duration": total_duration,
+    }
 
-    # GLOBALE REGELN FÜR ALLE AI-GENERIERTEN MEDITATIONSBLÖCKE
-    - **TONFALL**: Ruhig, warm, achtsam und vertrauenswürdig (calm, warm, mindful, trustworthy).
-    - **SPRACHE**: Einfach, klar und leicht verständlich.
-    - **KEIN STORYTELLING**: Erzähle keine Geschichten. Führe und leite den Nutzer lediglich an.
-    - **PAUSEN**: Setze bewusste Sprechpausen für die Sprachsynthese ein (signalisiert durch natürliche Kommas und Punkte).
-    - **EINHEITLICHER SPRECHRHYTHMUS (KRITISCH)**:
-      Die gesamte Meditation muss wie ein einziger, ununterbrochener, extrem langsamer Fluss klingen.
-      Es darf keinen Unterschied in Geschwindigkeit, Tonfall oder Energie zwischen den Schritten geben.
-    - **SCHREIBMUSTER**:
-      Schreibe in einem ruhigen, poetischen, fließenden Rhythmus.
-      Beende jeden Satz normal mit einem Punkt.
-      Verwende KEINE Ausrufezeichen, Fragezeichen oder SSML/Code-Tags.
-    - **VERBOTENE MUSTER**:
-      KEINE Sätze über 8-10 Wörter ohne Komma. KEINE Aufzählungen. KEINE rhetorischen Fragen. KEINE energischen Formulierungen.
+    # Format the prompt dynamically using safe .replace calls
+    formatted_prompt = prompt_template
+    for key, val in context.items():
+        placeholder = f"{{{key}}}"
+        formatted_prompt = formatted_prompt.replace(placeholder, str(val))
 
-    Benutzerprofil:
-    - Kategorie: {data["category_label"]}
-    - Emotion / aktuelle Stimmung: (Extrahiere die aktuelle Stimmung, Emotion oder das Gefühl des Nutzers selbstständig aus den unten stehenden Antworten des Fragebogens)
-    - Ziel: {data["goal"]}
-    - Zu loesende Belastung: {data["avoid"] or "Nicht angegeben"}
-    - Dauer: {data["duration"]} Minuten
-    - Erfahrung: {data["experience"]}
-    - Koerperspannung: {body_tension}
-    - Naturklang (Audio-Anker): {data["nature_sound"] or "Nicht angegeben"}
-    - Visualisierungslandschaft: {data["landscape"] or "Nicht angegeben"}
-    - Stimme: {data["voice_name"] or "Nicht angegeben"}
-    - Name: {data["user_name"] or "Nicht angegeben"}
-    - Weitere Antworten:
-    {questionnaire_lines}
-
-    Kategoriespezifische Richtung:
-    - Fokus: {guidance["focus"]}
-    - Visualisierung: {guidance["visualization"]}
-    - Affirmation: {guidance["affirmation"]}
-
-    # SPEZIFISCHE ANFORDERUNGEN AN DIE AI-BLÖCKE:
-
-    ## A: greeting (Personal Welcome)
-    - **Zweck**: Emotionaler Anker und Abholen des Nutzers.
-    - **Variablen**: Name des Nutzers ({data["user_name"] or "Nicht angegeben"}), aktuelle Stimmung/Emotion.
-    - **Aufgabe**: Hole den Nutzer genau da ab, wo er emotional steht, und gestalte den Übergang zur darauffolgenden Einführung (Intro).
-    - **Beispiel-Struktur**: "Hallo {data["user_name"] or "Nutzer"}. Wie schön, dass du dir heute diesen Moment für dich nimmst. Du hast angegeben, dass du dich gerade [Stimmung/Gefühl aus dem Fragebogen] fühlst. Das ist vollkommen okay – alles darf genau so sein, wie es jetzt ist. Gemeinsam schaffen wir den Raum, um diesen Zustand sanft zu verändern. Lass uns beginnen..."
-
-    ## B: personal_reflection (Personalized Main Section)
-    - **Zweck**: Emotionaler Kern, Körperfokus und Lösen von Anspannungen.
-    - **Dauer**: Ca. 4-6 Minuten spoken audio (Wortanzahl ca. 450-700 Wörter).
-    - **Variablen**: Körperfokus/Körperspannung ({body_tension}), zu lösende Belastung/Stressoren ({data["avoid"] or "Nicht angegeben"}).
-    - **Anforderungen**:
-      - Sprich den Nutzer direkt mit "du" / "dir" / "dein" an.
-      - Leite den Nutzer Schritt für Schritt an.
-      - Behalte einen ruhigen, unterstützenden und beruhigenden Tonfall bei.
-      - Wiederhole Schlüsselideen auf natürliche Weise mit anderen Worten.
-      - Baue Atemmomente und Reflektionspausen ein.
-      - Vertiefe die Erfahrung, statt nur kurze Anweisungen zu geben.
-      - Nutze Metaphern und Bilder, die zur Intention des Nutzers passen.
-      - Greife die ausgewählten Körperbereiche ({body_tension}) mehrmals auf und beschreibe, wie sich Entspannung, Wärme, Heilung oder Leichtigkeit dort ausbreiten.
-      - Verbinde Körperempfindungen, Emotionen und Visualisierung zu einer kontinuierlichen inneren Reise.
-      - Vermeide kurze Befehle (z. B. "Konzentriere dich auf... Fühle... Lass los... Atme..."). Schreibe fließende Absätze, die Entspannung und Verbundenheit erzeugen.
-      - Schreibe für gesprochenes Audio: Verwende kurze bis mittellange Sätze und einen natürlichen Rhythmus.
-
-    ## C: suggestion (Suggestions Section)
-    - **Zweck**: Verankerung des Ziels ({data["goal"]}) durch Suggestionen.
-    - **Pacing**: Ruhig, geräumig und tiefenwirksam.
-    - **Aufgabe**: Generiere einen kurzen Übergangssatz, der den Hörer vorbereitet (z.B. "Erlaube diesen Suggestionen, sich sanft in deinem Unterbewusstsein niederzulassen. Du musst nichts tun. Höre einfach zu, atme und erlaube jedem Wort, sich ganz natürlich in dir zu entfalten."). Generiere dann 3 bis 4 wirkungsvolle Suggestionssätze basierend auf dem Ziel des Nutzers.
-    - **Pausen**: Nach JEDER Suggestion (auch der allerletzten) MUSS der Pausen-Marker `[[PAUSE_4S]]` stehen, damit der Hörer Raum zum Absorbieren hat.
-    - **Beispiel**:
-      "Lass diese Gedanken nun ganz sanft in dein Unterbewusstsein sinken. [[PAUSE_4S]] Du bist vollkommen sicher. [[PAUSE_4S]] Mit jedem Atemzug entspannt sich dein Körper mehr. [[PAUSE_4S]] Vertrauen wächst in dir. [[PAUSE_4S]]"
-
-    ## D: affirmation (Affirmations Loop)
-    - **Zweck**: Wiederholbare Affirmationen zur Verankerung des Meditationsziels ({data["goal"]}).
-    - **Aufgabe**: Generiere 2-3 kurze, kraftvolle Affirmationssätze basierend auf dem Ziel. Sie müssen loopbar sein (kein Intro/Outro).
-    - **Pausen**: Setze nach JEDER Affirmation (auch der letzten) den Pausen-Marker `[[PAUSE_4S]]` ein.
-    - **Beispiel**:
-      "Ich bin ruhig und geschützt. [[PAUSE_4S]] Ich vertraue dem Fluss meines Lebens. [[PAUSE_4S]]"
-
-    ## E: visualization (Generated Journey / Power Landscape)
-    - **Zweck**: Emotionaler Höhepunkt in der ausgewählten Landschaft ({data["landscape"] or "Nicht angegeben"}).
-    - **Dauer**: Ca. 4-6 Minuten spoken audio (Wortanzahl ca. 450-700 Wörter).
-    - **Aufgabe**: Führe den Nutzer in eine emotionale Innenreise. Nutze die ausgewählte Landschaft ({data["landscape"]}) als aktive therapeutische Umgebung, die die gewünschte emotionale Transformation (Ziel: {data["goal"]}, aktuelle Stimmung zu gewünschtem emotionalen Zustand) unterstützt:
-      - Wald (Forest) → Erdung, Kraft, Erneuerung (grounding, strength, renewal)
-      - Bergsee (Mountain Lake) → Klarheit, Stille, innerer Frieden (clarity, stillness, inner peace)
-      - Blumenwiese (Flower Meadow) → Freude, Leichtigkeit, Hoffnung (joy, lightness, hope)
-      - Weißer Strand (White Beach) → Freiheit, Weite, tiefe Entspannung (freedom, openness, deep relaxation)
-    - **Struktur der Visualisierung**:
-      1. Ankommen in der ausgewählten Landschaft.
-      2. Erleben der Umgebung mit allen Sinnen.
-      3. Entdecken eines bedeutungsvollen Ortes, Symbols oder Erlebnisses.
-      4. Die Landschaft unterstützt aktiv die gewünschte emotionale Transformation.
-      5. Erleben des gewünschten emotionalen Zustands, als ob er bereits existiert.
-      6. Rückkehr im Bewusstsein, diese innere Ressource mit in den Alltag zu nehmen.
-    - **Wichtig**: Beschreibe nicht bloß die Kulisse. Die Visualisierung muss eine emotionale Erfahrung kreieren, die den Zuhörer den gewünschten Zustand tatsächlich fühlen lässt. Die Landschaft soll zu einem Ort werden, an den der Nutzer gerne zurückkehrt.
-
-    Pflichtanforderungen:
-    1. Erstelle einzigartige, poetische Inhalte — keine statische Vorlage.
-    2. Nutze genau diese Reihenfolge: {", ".join(AI_STEP_ORDER)}.
-    3. Jede Section braucht step_type, content, duration, start_time und end_time. (Schätze die Sektions-Dauer in Sekunden basierend auf der Textlänge, ca. 100-120 Wörter entsprechen 60 Sekunden).
-    4. total_duration muss der Summe aller step-Dauern entsprechen.
-    5. ALLE Sections muessen den IDENTISCHEN warmen, langsamen Tonfall haben.
-
-    JSON-Form:
-    {{
-    "title": "string",
-    "summary": "string",
-    "total_duration": {total_duration},
-    "steps": [
-        {{"step_type": "greeting", "content": "string", "duration": 60, "start_time": 0, "end_time": 60}},
-        {{"step_type": "personal_reflection", "content": "string", "duration": 240, "start_time": 60, "end_time": 300}},
-        {{"step_type": "suggestion", "content": "string", "duration": 120, "start_time": 300, "end_time": 420}},
-        {{"step_type": "affirmation", "content": "string", "duration": 60, "start_time": 420, "end_time": 480}},
-        {{"step_type": "visualization", "content": "string", "duration": 240, "start_time": 480, "end_time": 720}}
-    ]
-    }}
-    """
+    return formatted_prompt
 
 
 

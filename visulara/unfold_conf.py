@@ -151,6 +151,11 @@ UNFOLD = {
                         "link": "/admin/ai_service/ttssettings/",
                     },
                     {
+                        "title": "Meditation Prompts",
+                        "icon": "description",
+                        "link": "/admin/ai_service/meditationprompt/",
+                    },
+                    {
                         "title": "Audio Generator",
                         "icon": "volume_up",
                         "link": "/admin/ai_service/generate-audio/",

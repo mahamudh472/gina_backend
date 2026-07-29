@@ -1,9 +1,11 @@
+from django import forms
 from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import reverse
 from unfold.admin import ModelAdmin
 
-from .models import TTSSettings
+from .models import TTSSettings, MeditationPrompt
+from .widgets import InteractivePromptWidget
 
 
 class TTSSettingsAdmin(ModelAdmin):
@@ -21,4 +23,21 @@ class TTSSettingsAdmin(ModelAdmin):
         return redirect(reverse('admin:ai_service_ttssettings_change', args=[obj.pk]))
 
 
+class MeditationPromptForm(forms.ModelForm):
+    class Meta:
+        model = MeditationPrompt
+        fields = '__all__'
+        widgets = {
+            'prompt_template': InteractivePromptWidget(),
+        }
+
+
+class MeditationPromptAdmin(ModelAdmin):
+    form = MeditationPromptForm
+    list_display = ('name', 'is_active', 'created_at', 'updated_at')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'prompt_template')
+
+
 admin.site.register(TTSSettings, TTSSettingsAdmin)
+admin.site.register(MeditationPrompt, MeditationPromptAdmin)
