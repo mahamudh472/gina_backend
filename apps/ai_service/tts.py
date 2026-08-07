@@ -131,36 +131,40 @@ def _generate_audio_with_pauses(
                     "-i", "anullsrc=r=44100:cl=mono",
                     "-t", str(duration),
                     "-acodec", "libmp3lame",
-                    "-q:a", "9",
+                    "-b:a", "128k",
+                    "-ar", "44100",
                     temp_file.name
                 ]
                 res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 if res.returncode != 0:
                     raise TTSGenerationError(f"FFmpeg silence generation failed: {res.stderr.decode('utf-8')}")
 
+        # Now concatenate using concat demuxer
+        list_file = tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w")
+        for tf in temp_files:
+            escaped_path = tf.replace("'", "'\\''")
+            list_file.write(f"file '{escaped_path}'\n")
+        list_file.close()
+
         out_file = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
         out_file.close()
         
-        cmd = ["ffmpeg", "-y"]
-        for tf in temp_files:
-            cmd.extend(["-i", tf])
-            
-        filter_str = ""
-        for i in range(len(temp_files)):
-            filter_str += f"[{i}:a]aformat=sample_rates=44100:channel_layouts=mono[a{i}];"
-        for i in range(len(temp_files)):
-            filter_str += f"[a{i}]"
-        filter_str += f"concat=n={len(temp_files)}:v=0:a=1[a]"
-        
-        cmd.extend([
-            "-filter_complex", filter_str,
-            "-map", "[a]",
-            "-acodec", "libmp3lame",
-            "-q:a", "2",
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-f", "concat",
+            "-safe", "0",
+            "-i", list_file.name,
+            "-c", "copy",
             out_file.name
-        ])
+        ]
         
         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            os.unlink(list_file.name)
+        except Exception:
+            pass
+
         if res.returncode != 0:
             raise TTSGenerationError(f"FFmpeg concatenation failed: {res.stderr.decode('utf-8')}")
             
