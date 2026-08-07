@@ -32,8 +32,8 @@ def generate_step_audio(
     """Generate speech audio for one meditation step when TTS is configured."""
     if not getattr(settings, "TTS_GENERATE_AUDIO", True):
         raise TTSGenerationError("TTS generation is disabled.")
-    if not text or not text.strip():
-        raise TTSGenerationError("Text for TTS generation is empty.")
+    if not text or not text.strip() or not any(char.isalnum() for char in text):
+        raise TTSGenerationError("Text for TTS generation is empty or contains no alphanumeric characters.")
 
     provider = str(getattr(settings, "TTS_PROVIDER", "elevenlabs")).lower()
     if provider != "elevenlabs":
@@ -80,7 +80,7 @@ def _generate_audio_with_pauses(
     for i, part in enumerate(parts):
         if i % 2 == 0:
             cleaned = part.strip()
-            if cleaned:
+            if cleaned and any(char.isalnum() for char in cleaned):
                 segments.append({"type": "text", "content": cleaned})
         else:
             seconds = int(part)
