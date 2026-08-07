@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from apps.main.models import MeditationCategory
 
 
 class TTSSettings(models.Model):
@@ -42,6 +43,11 @@ class TTSSettings(models.Model):
 
 class MeditationPrompt(models.Model):
     name = models.CharField(max_length=255)
+    category = models.CharField(
+        max_length=50,
+        choices=MeditationCategory.choices,
+        default=MeditationCategory.RELAXATION,
+    )
     prompt_template = models.TextField()
     is_active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -53,23 +59,25 @@ class MeditationPrompt(models.Model):
 
     def save(self, *args, **kwargs):
         if self.is_active:
-            # Set all other instances to inactive
-            MeditationPrompt.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+            # Set all other instances of the same category to inactive
+            MeditationPrompt.objects.filter(category=self.category, is_active=True).exclude(pk=self.pk).update(is_active=False)
         else:
-            # Enforce at least one active prompt if any exist
-            if not MeditationPrompt.objects.filter(is_active=True).exclude(pk=self.pk).exists():
+            # Enforce at least one active prompt for this category if any exist
+            if not MeditationPrompt.objects.filter(category=self.category, is_active=True).exclude(pk=self.pk).exists():
                 self.is_active = True
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         was_active = self.is_active
+        category = self.category
         super().delete(*args, **kwargs)
         if was_active:
-            # Find another prompt and make it active
-            another = MeditationPrompt.objects.first()
+            # Find another prompt of the same category and make it active
+            another = MeditationPrompt.objects.filter(category=category).first()
             if another:
                 another.is_active = True
                 another.save()
 
     def __str__(self):
-        return f"{self.name} ({'Active' if self.is_active else 'Inactive'})"
+        return f"{self.name} - {self.get_category_display()} ({'Active' if self.is_active else 'Inactive'})"
+

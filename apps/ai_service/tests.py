@@ -345,4 +345,140 @@ class MeditationPromptTests(TestCase):
         self.assertIn("Du bist eine weltklasse Meditationslehrerin", prompt)
         self.assertIn("Name: Anna", prompt)
 
+    def test_per_category_active_prompts_dont_interfere(self):
+        # Clean up existing prompts
+        MeditationPrompt.objects.all().delete()
+
+        # Create active prompt for relaxation
+        prompt_relaxation = MeditationPrompt.objects.create(
+            name="Relaxation Prompt",
+            category="relaxation",
+            prompt_template="Relaxation template {user_name}",
+            is_active=True
+        )
+
+        # Create active prompt for self_love
+        prompt_self_love = MeditationPrompt.objects.create(
+            name="Self Love Prompt",
+            category="self_love",
+            prompt_template="Self Love template {user_name}",
+            is_active=True
+        )
+
+        # Both should remain active since they are in different categories
+        prompt_relaxation.refresh_from_db()
+        prompt_self_love.refresh_from_db()
+        self.assertTrue(prompt_relaxation.is_active)
+        self.assertTrue(prompt_self_love.is_active)
+
+    def test_per_category_active_prompt_deletion(self):
+        # Clean up existing prompts
+        MeditationPrompt.objects.all().delete()
+
+        # Create active prompt for relaxation
+        prompt_relaxation1 = MeditationPrompt.objects.create(
+            name="Relaxation Prompt 1",
+            category="relaxation",
+            prompt_template="Relaxation template 1",
+            is_active=True
+        )
+
+        # Create inactive prompt for relaxation
+        prompt_relaxation2 = MeditationPrompt.objects.create(
+            name="Relaxation Prompt 2",
+            category="relaxation",
+            prompt_template="Relaxation template 2",
+            is_active=False
+        )
+
+        # Create active prompt for self_love
+        prompt_self_love = MeditationPrompt.objects.create(
+            name="Self Love Prompt",
+            category="self_love",
+            prompt_template="Self Love template",
+            is_active=True
+        )
+
+        # Delete the active relaxation prompt
+        prompt_relaxation1.delete()
+
+        # relaxation2 should automatically become active, self_love should remain active
+        prompt_relaxation2.refresh_from_db()
+        prompt_self_love.refresh_from_db()
+        self.assertTrue(prompt_relaxation2.is_active)
+        self.assertTrue(prompt_self_love.is_active)
+
+    def test_build_prompt_selects_correct_category_prompt(self):
+        # Clean up existing prompts
+        MeditationPrompt.objects.all().delete()
+
+        # Create active prompt for relaxation
+        MeditationPrompt.objects.create(
+            name="Relaxation Prompt",
+            category="relaxation",
+            prompt_template="Relaxation {user_name}",
+            is_active=True
+        )
+
+        # Create active prompt for self_love
+        MeditationPrompt.objects.create(
+            name="Self Love Prompt",
+            category="self_love",
+            prompt_template="Self Love {user_name}",
+            is_active=True
+        )
+
+        data = {
+            "category": "self_love",
+            "category_label": "Selbstliebe",
+            "user_name": "Anna",
+            "goal": "Selbstliebe staerken",
+            "avoid": "Selbstzweifel",
+            "duration": 10,
+            "experience": "intermediate",
+            "body_tension": ["Herzbereich"],
+            "nature_sound": "rain",
+            "landscape": "forest",
+            "voice_name": "Aura",
+            "questionnaire_answers": {}
+        }
+
+        # Should select the self_love prompt
+        prompt = build_prompt(data)
+        self.assertEqual(prompt, "Self Love Anna")
+
+    def test_build_prompt_fallback_only_if_category_missing(self):
+        # Clean up existing prompts
+        MeditationPrompt.objects.all().delete()
+
+        # Create active prompt for relaxation
+        MeditationPrompt.objects.create(
+            name="Relaxation Prompt",
+            category="relaxation",
+            prompt_template="Relaxation {user_name}",
+            is_active=True
+        )
+
+        # Request self_love which has no prompt
+        data = {
+            "category": "self_love",
+            "category_label": "Selbstliebe",
+            "user_name": "Anna",
+            "goal": "Selbstliebe staerken",
+            "avoid": "Selbstzweifel",
+            "duration": 10,
+            "experience": "intermediate",
+            "body_tension": ["Herzbereich"],
+            "nature_sound": "rain",
+            "landscape": "forest",
+            "voice_name": "Aura",
+            "questionnaire_answers": {}
+        }
+
+        # Should fallback to default because self_love has no prompt
+        prompt = build_prompt(data)
+        self.assertIn("Du bist eine weltklasse Meditationslehrerin", prompt)
+        self.assertIn("Name: Anna", prompt)
+
+
 

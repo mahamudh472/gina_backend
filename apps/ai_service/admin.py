@@ -34,8 +34,8 @@ class MeditationPromptForm(forms.ModelForm):
 
 class MeditationPromptAdmin(ModelAdmin):
     form = MeditationPromptForm
-    list_display = ('name', 'is_active', 'created_at', 'updated_at')
-    list_filter = ('is_active',)
+    list_display = ('name', 'category', 'is_active', 'created_at', 'updated_at')
+    list_filter = ('category', 'is_active')
     search_fields = ('name', 'prompt_template')
 
 

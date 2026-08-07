@@ -343,7 +343,7 @@ def build_prompt(data: dict[str, Any]) -> str:
     body_tension = ", ".join(data["body_tension"]) or "Nicht angegeben"
 
     from apps.ai_service.models import MeditationPrompt
-    active_prompt_obj = MeditationPrompt.objects.filter(is_active=True).first()
+    active_prompt_obj = MeditationPrompt.objects.filter(category=category, is_active=True).first()
     if active_prompt_obj:
         prompt_template = active_prompt_obj.prompt_template
     else:
