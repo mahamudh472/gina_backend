@@ -280,8 +280,14 @@ def _generate_elevenlabs_audio(
             break
         except requests.RequestException as exc:
             if attempt == max_retries - 1:
+                detail = ""
+                if exc.response is not None:
+                    try:
+                        detail = f" - Response: {exc.response.text}"
+                    except Exception:
+                        pass
                 raise TTSGenerationError(
-                    f"ElevenLabs TTS generation failed after {max_retries} attempts: {exc}"
+                    f"ElevenLabs TTS generation failed after {max_retries} attempts: {exc}{detail}"
                 ) from exc
             logger.warning("ElevenLabs connection failed (attempt %d/%d): %s. Retrying...", attempt + 1, max_retries, exc)
             time.sleep(2 ** attempt)
