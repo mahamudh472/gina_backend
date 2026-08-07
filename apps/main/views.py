@@ -1,3 +1,4 @@
+import logging
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -18,6 +19,9 @@ from apps.main.serializers import (
 )
 from apps.main.services import create_generated_meditation
 from apps.ai_service.exceptions import MeditationGenerationError, TTSGenerationError
+
+logger = logging.getLogger(__name__)
+
 
 class CharecterVoiceListView(generics.ListAPIView):
 
@@ -46,8 +50,9 @@ class MeditationGenerateView(APIView):
         try:
             meditation = create_generated_meditation(serializer.validated_data, user=request.user)
         except (MeditationGenerationError, TTSGenerationError) as exc:
+            logger.error("Meditation generation failed: %s", exc, exc_info=True)
             return Response(
-                {"detail": str(exc)},
+                {"detail": "Failed to generate meditation. Please try again later."},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
         
