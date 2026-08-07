@@ -22,6 +22,24 @@ DEFAULT_TTS_SETTINGS = {
 }
 
 
+def _replace_pauses_with_ssml(text: str) -> str:
+    pattern = r'\[\[pause_(\d+)s\]\]'
+    
+    def repl(match):
+        seconds = int(match.group(1))
+        if seconds <= 0:
+            return ""
+        tags = []
+        while seconds > 3:
+            tags.append('<break time="3.0s" />')
+            seconds -= 3
+        if seconds > 0:
+            tags.append(f'<break time="{seconds}.0s" />')
+        return "".join(tags)
+        
+    return re.sub(pattern, repl, text, flags=re.IGNORECASE)
+
+
 def generate_step_audio(
     *,
     text: str,
@@ -49,12 +67,7 @@ def generate_step_audio(
         raise TTSGenerationError("TTS_API_KEY is not configured.")
 
     if re.search(r'\[\[pause_\d+s\]\]', text, re.IGNORECASE):
-        return _generate_audio_with_pauses(
-            text=text,
-            voice_name=voice_name,
-            voice_id=resolved_voice_id,
-            tts_settings=tts_settings,
-        )
+        text = _replace_pauses_with_ssml(text)
 
     audio_bytes = _generate_elevenlabs_audio(
         text=text,
@@ -65,121 +78,6 @@ def generate_step_audio(
 
     return audio_bytes
 
-
-def _generate_audio_with_pauses(
-    *,
-    text: str,
-    voice_name: str,
-    voice_id: str | None,
-    tts_settings: dict[str, Any] | None,
-) -> bytes:
-    pattern = r'\[\[pause_(\d+)s\]\]'
-    parts = re.split(pattern, text, flags=re.IGNORECASE)
-    
-    segments = []
-    for i, part in enumerate(parts):
-        if i % 2 == 0:
-            cleaned = part.strip()
-            if cleaned and any(char.isalnum() for char in cleaned):
-                segments.append({"type": "text", "content": cleaned})
-        else:
-            seconds = int(part)
-            if seconds > 0:
-                segments.append({"type": "pause", "duration": seconds})
-                
-    if not segments:
-        raise TTSGenerationError("No audio content or pauses generated.")
-        
-    has_pause = any(seg["type"] == "pause" for seg in segments)
-    if not has_pause:
-        clean_text = re.sub(r'\[\[pause_\d+s\]\]', "", text, flags=re.IGNORECASE).strip()
-        api_key = getattr(settings, "TTS_API_KEY", None)
-        resolved_voice_id = voice_id or resolve_voice_id(voice_name)
-        return _generate_elevenlabs_audio(
-            text=clean_text,
-            voice_id=resolved_voice_id,
-            api_key=api_key,
-            tts_settings=tts_settings,
-        ) or b""
-
-    temp_files = []
-    try:
-        for idx, seg in enumerate(segments):
-            temp_file = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
-            temp_file.close()
-            temp_files.append(temp_file.name)
-            
-            if seg["type"] == "text":
-                resolved_voice_id = voice_id or resolve_voice_id(voice_name)
-                api_key = getattr(settings, "TTS_API_KEY", None)
-                audio_bytes = _generate_elevenlabs_audio(
-                    text=seg["content"],
-                    voice_id=resolved_voice_id,
-                    api_key=api_key,
-                    tts_settings=tts_settings,
-                )
-                if not audio_bytes:
-                    raise TTSGenerationError("Failed to generate audio for text segment.")
-                with open(temp_file.name, "wb") as f:
-                    f.write(audio_bytes)
-            elif seg["type"] == "pause":
-                duration = seg["duration"]
-                cmd = [
-                    "ffmpeg",
-                    "-y",
-                    "-f", "lavfi",
-                    "-i", "anullsrc=r=44100:cl=mono",
-                    "-t", str(duration),
-                    "-acodec", "libmp3lame",
-                    "-b:a", "128k",
-                    "-ar", "44100",
-                    temp_file.name
-                ]
-                res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                if res.returncode != 0:
-                    raise TTSGenerationError(f"FFmpeg silence generation failed: {res.stderr.decode('utf-8')}")
-
-        # Now concatenate using concat demuxer
-        list_file = tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w")
-        for tf in temp_files:
-            escaped_path = tf.replace("'", "'\\''")
-            list_file.write(f"file '{escaped_path}'\n")
-        list_file.close()
-
-        out_file = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
-        out_file.close()
-        
-        cmd = [
-            "ffmpeg",
-            "-y",
-            "-f", "concat",
-            "-safe", "0",
-            "-i", list_file.name,
-            "-c", "copy",
-            out_file.name
-        ]
-        
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        try:
-            os.unlink(list_file.name)
-        except Exception:
-            pass
-
-        if res.returncode != 0:
-            raise TTSGenerationError(f"FFmpeg concatenation failed: {res.stderr.decode('utf-8')}")
-            
-        with open(out_file.name, "rb") as f:
-            concatenated_bytes = f.read()
-            
-        os.unlink(out_file.name)
-        return concatenated_bytes
-
-    finally:
-        for tf in temp_files:
-            try:
-                os.unlink(tf)
-            except Exception:
-                pass
 
 
 def get_audio_duration(audio_bytes: bytes) -> float | None:
@@ -343,6 +241,11 @@ def _normalize_meditation_text(text: str) -> str:
     """
     import re as _re
     
+    # Preserve break tags
+    break_tags = _re.findall(r'<break\s+time="[^"]*"\s*/>', text)
+    for index, tag in enumerate(break_tags):
+        text = text.replace(tag, f"__BREAK_{index}__", 1)
+    
     # 1. Strip out any accidental XML/SSML tags entirely
     text = _re.sub(r'<[^>]+>', '', text)
     
@@ -364,4 +267,8 @@ def _normalize_meditation_text(text: str) -> str:
     text = text.replace('! ', '... .   ')
     text = text.replace('? ', '... .   ')
     
+    # Restore break tags
+    for index, tag in enumerate(break_tags):
+        text = text.replace(f"__BREAK_{index}__", tag, 1)
+        
     return text.strip()
