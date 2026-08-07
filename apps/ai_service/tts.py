@@ -128,7 +128,7 @@ def _generate_audio_with_pauses(
                     "ffmpeg",
                     "-y",
                     "-f", "lavfi",
-                    "-i", "anullsrc=r=44100:cl=stereo",
+                    "-i", "anullsrc=r=44100:cl=mono",
                     "-t", str(duration),
                     "-acodec", "libmp3lame",
                     "-q:a", "9",
@@ -147,7 +147,7 @@ def _generate_audio_with_pauses(
             
         filter_str = ""
         for i in range(len(temp_files)):
-            filter_str += f"[{i}:a]aformat=sample_rates=44100:channel_layouts=stereo[a{i}];"
+            filter_str += f"[{i}:a]aformat=sample_rates=44100:channel_layouts=mono[a{i}];"
         for i in range(len(temp_files)):
             filter_str += f"[a{i}]"
         filter_str += f"concat=n={len(temp_files)}:v=0:a=1[a]"
