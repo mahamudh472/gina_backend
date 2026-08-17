@@ -47,6 +47,7 @@ def generate_audio_admin_view(request):
             "similarity_boost": db_settings.similarity_boost,
             "style": db_settings.style,
             "use_speaker_boost": db_settings.use_speaker_boost,
+            "volume_boost_db": getattr(db_settings, "volume_boost_db", 0.0),
         }
     except Exception as e:
         logger.warning("Could not load dynamic TTS settings for admin page, using code defaults: %s", e)
@@ -57,6 +58,7 @@ def generate_audio_admin_view(request):
     similarity_boost = request.session.get('tts_similarity_boost', default_settings['similarity_boost'])
     style = request.session.get('tts_style', default_settings['style'])
     use_speaker_boost = request.session.get('tts_use_speaker_boost', default_settings['use_speaker_boost'])
+    volume_boost_db = request.session.get('tts_volume_boost_db', default_settings.get('volume_boost_db', 0.0))
     voice_id = request.session.get('tts_voice_id', '')
     text = request.session.get('tts_text', '')
 
@@ -67,7 +69,7 @@ def generate_audio_admin_view(request):
 
         if action == 'reset':
             # Clear overrides from session
-            for key in ['tts_stability', 'tts_similarity_boost', 'tts_style', 'tts_use_speaker_boost', 'tts_voice_id', 'tts_text']:
+            for key in ['tts_stability', 'tts_similarity_boost', 'tts_style', 'tts_use_speaker_boost', 'tts_volume_boost_db', 'tts_voice_id', 'tts_text']:
                 if key in request.session:
                     del request.session[key]
             messages.success(request, "TTS settings reset to defaults.")
@@ -82,6 +84,7 @@ def generate_audio_admin_view(request):
                 stability = float(request.POST.get('stability', stability))
                 similarity_boost = float(request.POST.get('similarity_boost', similarity_boost))
                 style = float(request.POST.get('style', style))
+                volume_boost_db = float(request.POST.get('volume_boost_db', volume_boost_db))
             except ValueError:
                 pass
 
@@ -92,6 +95,7 @@ def generate_audio_admin_view(request):
             request.session['tts_similarity_boost'] = similarity_boost
             request.session['tts_style'] = style
             request.session['tts_use_speaker_boost'] = use_speaker_boost
+            request.session['tts_volume_boost_db'] = volume_boost_db
             request.session['tts_voice_id'] = voice_id
             request.session['tts_text'] = text
 
@@ -111,6 +115,7 @@ def generate_audio_admin_view(request):
                         "similarity_boost": similarity_boost,
                         "style": style,
                         "use_speaker_boost": use_speaker_boost,
+                        "volume_boost_db": volume_boost_db,
                     }
 
                     audio_bytes = generate_step_audio(
@@ -147,6 +152,7 @@ def generate_audio_admin_view(request):
         'similarity_boost': similarity_boost,
         'style': style,
         'use_speaker_boost': use_speaker_boost,
+        'volume_boost_db': volume_boost_db,
         'voice_id': voice_id,
         'text': text,
         'audio_url': audio_url,

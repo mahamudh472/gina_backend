@@ -19,7 +19,45 @@ DEFAULT_TTS_SETTINGS = {
     "similarity_boost": 0.60, 
     "style": 0.45,            
     "use_speaker_boost": True,
+    "volume_boost_db": 0.0,
 }
+
+
+def _apply_volume_boost(audio_bytes: bytes, volume_boost_db: float) -> bytes:
+    if not audio_bytes or volume_boost_db <= 0.0:
+        return audio_bytes
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_in:
+            tmp_in.write(audio_bytes)
+            tmp_in_path = tmp_in.name
+
+        tmp_out_path = tmp_in_path + "_boosted.mp3"
+        cmd = [
+            "ffmpeg", "-y", "-i", tmp_in_path,
+            "-filter:a", f"volume={volume_boost_db:.1f}dB",
+            "-c:a", "libmp3lame", "-q:a", "2",
+            tmp_out_path
+        ]
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if res.returncode == 0 and os.path.exists(tmp_out_path):
+            with open(tmp_out_path, "rb") as bf:
+                boosted_bytes = bf.read()
+            if os.path.exists(tmp_out_path):
+                os.remove(tmp_out_path)
+            if os.path.exists(tmp_in_path):
+                os.remove(tmp_in_path)
+            logger.info("Applied +%.1f dB volume boost to generated audio (%d bytes -> %d bytes)", volume_boost_db, len(audio_bytes), len(boosted_bytes))
+            return boosted_bytes
+        else:
+            logger.warning("FFmpeg volume boost failed: %s", res.stderr.decode("utf-8", errors="ignore"))
+            if os.path.exists(tmp_in_path):
+                os.remove(tmp_in_path)
+            if os.path.exists(tmp_out_path):
+                os.remove(tmp_out_path)
+            return audio_bytes
+    except Exception as exc:
+        logger.error("Error applying volume boost: %s", exc)
+        return audio_bytes
 
 
 def _replace_pauses_with_ssml(text: str) -> str:
@@ -75,6 +113,11 @@ def generate_step_audio(
         api_key=api_key,
         tts_settings=tts_settings,
     )
+
+    normalized_settings = _normalize_tts_settings(tts_settings)
+    volume_boost_db = float(normalized_settings.get("volume_boost_db", 0.0))
+    if audio_bytes and volume_boost_db > 0.0:
+        audio_bytes = _apply_volume_boost(audio_bytes, volume_boost_db)
 
     return audio_bytes
 
@@ -210,6 +253,7 @@ def _normalize_tts_settings(tts_settings: dict[str, Any] | None) -> dict[str, An
             "similarity_boost": db_settings.similarity_boost,
             "style": db_settings.style,
             "use_speaker_boost": db_settings.use_speaker_boost,
+            "volume_boost_db": getattr(db_settings, "volume_boost_db", 0.0),
         }
     except Exception as e:
         logger.warning("Could not fetch dynamic TTS settings: %s. Using hardcoded defaults.", e)
@@ -222,6 +266,8 @@ def _normalize_tts_settings(tts_settings: dict[str, Any] | None) -> dict[str, An
                 normalized[key] = max(0.0, min(1.0, float(tts_settings[key])))
         if "use_speaker_boost" in tts_settings:
             normalized["use_speaker_boost"] = bool(tts_settings["use_speaker_boost"])
+        if "volume_boost_db" in tts_settings:
+            normalized["volume_boost_db"] = max(0.0, min(12.0, float(tts_settings["volume_boost_db"])))
     return normalized
 
 

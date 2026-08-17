@@ -206,7 +206,8 @@ class AdminAudioGeneratorTests(TestCase):
                 "stability": 0.77,
                 "similarity_boost": 0.88,
                 "style": 0.15,
-                "use_speaker_boost": True
+                "use_speaker_boost": True,
+                "volume_boost_db": 0.0,
             }
         )
 
