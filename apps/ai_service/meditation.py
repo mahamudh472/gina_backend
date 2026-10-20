@@ -29,56 +29,44 @@ DJANGO_STEP_ORDER = [
 ]
 
 CATEGORY_LABELS = {
-    "relaxation": "Entspannung",
-    "self_love": "Selbstliebe",
-    "focus_clarity": "Fokus und Klarheit",
-    "gratitude": "Dankbarkeit",
-    "trust": "Vertrauen",
-    "energy": "Energie",
-    "transformation": "Transformation",
+    "self_discovery": "Identität & Selbstfindung",
+    "emotional_healing": "Emotionale Heilung",
     "inner_peace": "Innerer Frieden",
+    "transformation": "Transformation",
+    "energy": "Energie",
+    "grounding": "Erdung & Stressmanagement",
 }
 
 CATEGORY_GUIDANCE = {
-    "relaxation": {
-        "focus": "Stressabbau, Weichheit, tiefe Ruhe und Regulation des Nervensystems",
-        "visualization": "Strand, Regen, Sonnenuntergang oder warme Stille",
-        "affirmation": "Ich darf loslassen. Ich bin sicher. Ruhe ist jetzt erlaubt.",
+    "self_discovery": {
+        "focus": "Selbsterkenntnis, Identität, innere Wahrheit und authentisches Sein",
+        "visualization": "Spiegel, klarer See, Sternenhimmel und innere Kompass",
+        "affirmation": "Ich erkenne mich selbst. Mein wahres Selbst führt mich.",
     },
-    "self_love": {
-        "focus": "Selbstmitgefuehl, Annahme, Vergebung und Wuerde",
-        "visualization": "warmes Herzlicht, Blumen, sanfte Spiegel und Morgenlicht",
-        "affirmation": "Ich bin genug. Ich darf freundlich mit mir sein.",
+    "emotional_healing": {
+        "focus": "Emotionale Verarbeitung, Heilung alter Wunden, Loslassen und Vergebung",
+        "visualization": "heilendes Licht, fließendes Wasser, schützender Kokon und sanfte Umarmung",
+        "affirmation": "Ich erlaube mir zu fühlen und zu heilen. Meine Emotionen sind willkommen.",
     },
-    "focus_clarity": {
-        "focus": "Konzentration, Klarheit, Stabilitaet und ausgerichtete Aufmerksamkeit",
-        "visualization": "Berggipfel, klarer See und frische Morgenluft",
-        "affirmation": "Mein Geist wird klar. Ich kehre zu dem zurueck, was zaehlt.",
+    "inner_peace": {
+        "focus": "Stille, Präsenz, innerer Raum und tiefer Frieden",
+        "visualization": "Zen-Garten, Mondlicht, stiller See und weiter Himmel",
+        "affirmation": "Stille lebt in mir. Frieden ist bereits da.",
     },
-    "gratitude": {
-        "focus": "Dankbarkeit, Fuelle, Freude und Wertschaetzung des Moments",
-        "visualization": "goldene Wiese, offener Himmel und warmes Licht",
-        "affirmation": "Dankbarkeit lebt in mir. Ich empfange diesen Moment.",
-    },
-    "trust": {
-        "focus": "Sicherheit, Hingabe, Vertrauen und Loslassen von Kontrolle",
-        "visualization": "starke Wurzeln, weiter Horizont und gehaltene Raeume",
-        "affirmation": "Ich darf vertrauen. Ich bin getragen.",
+    "transformation": {
+        "focus": "Wachstum, Erneuerung, Loslassen und Neubeginn",
+        "visualization": "Schmetterling, Phoenix, Frühlingswald und neue Wege",
+        "affirmation": "Ich öffne mich für Wandel. Ich wachse in mein Neues hinein.",
     },
     "energy": {
         "focus": "Lebendigkeit, Motivation, Kraft und sanftes Erwachen",
         "visualization": "Sonnenaufgang, goldenes Licht und klare, funkelnde Luft",
-        "affirmation": "Neue Energie fliesst durch mich. Ich bin lebendig und bereit.",
+        "affirmation": "Neue Energie fließt durch mich. Ich bin lebendig und bereit.",
     },
-    "transformation": {
-        "focus": "Wachstum, Erneuerung, Loslassen und Neubeginn",
-        "visualization": "Schmetterling, Phoenix, Fruehlingswald und neue Wege",
-        "affirmation": "Ich oeffne mich fuer Wandel. Ich wachse in mein Neues hinein.",
-    },
-    "inner_peace": {
-        "focus": "Stille, Praesenz, innerer Raum und tiefer Frieden",
-        "visualization": "Zen-Garten, Mondlicht, stiller See und weiter Himmel",
-        "affirmation": "Stille lebt in mir. Frieden ist bereits da.",
+    "grounding": {
+        "focus": "Stressabbau, Stabilität, Erdung und Bewältigung des Alltags",
+        "visualization": "starke Wurzeln, Berg, fester Boden und schützender Baum",
+        "affirmation": "Ich bin geerdet und stabil. Ich meistere meinen Alltag mit Ruhe.",
     },
 }
 
@@ -335,7 +323,7 @@ JSON-Form:
 
 def build_prompt(data: dict[str, Any]) -> str:
     category = data["category"]
-    guidance = CATEGORY_GUIDANCE.get(category, CATEGORY_GUIDANCE["relaxation"])
+    guidance = CATEGORY_GUIDANCE.get(category, CATEGORY_GUIDANCE["self_discovery"])
     questionnaire_lines = "\n".join(
         f"- {key}: {value}" for key, value in data["questionnaire_answers"].items()
     ) or "- Keine zusaetzlichen Antworten"

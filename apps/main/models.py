@@ -40,14 +40,12 @@ class BackgroundImage(models.Model):
 
 
 class MeditationCategory(models.TextChoices):
-    RELAXATION = "relaxation", "Entspannung"
-    SELF_LOVE = "self_love", "Selbstliebe"
-    FOCUS_CLARITY = "focus_clarity", "Fokus & Klarheit"
-    GRATITUDE = "gratitude", "Dankbarkeit"
-    TRUST = "trust", "Vertrauen"
-    ENERGY = "energy", "Energie"
-    TRANSFORMATION = "transformation", "Transformation"
+    SELF_DISCOVERY = "self_discovery", "Identität & Selbstfindung"
+    EMOTIONAL_HEALING = "emotional_healing", "Emotionale Heilung"
     INNER_PEACE = "inner_peace", "Innerer Frieden"
+    TRANSFORMATION = "transformation", "Transformation"
+    ENERGY = "energy", "Energie"
+    GROUNDING = "grounding", "Erdung & Stressmanagement"
 
 class MeditationStep(models.TextChoices):
     GREETING = "greeting", "Begrüßung"

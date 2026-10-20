@@ -258,7 +258,7 @@ Use this shape as request body. Note that `nature_sound_name` and `background_im
 }
 ```
 
-Categories available: `relaxation`, `self_love`, `focus_clarity`, `gratitude`, `trust`, `energy`, `transformation`, `inner_peace`.
+Categories available: `self_discovery`, `emotional_healing`, `inner_peace`, `transformation`, `energy`, `grounding`.
 
 ### Response Payload Reference
 

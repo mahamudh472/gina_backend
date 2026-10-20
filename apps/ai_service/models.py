@@ -51,7 +51,7 @@ class MeditationPrompt(models.Model):
     category = models.CharField(
         max_length=50,
         choices=MeditationCategory.choices,
-        default=MeditationCategory.RELAXATION,
+        default=MeditationCategory.SELF_DISCOVERY,
     )
     prompt_template = models.TextField()
     is_active = models.BooleanField(default=False)

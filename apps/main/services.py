@@ -48,14 +48,12 @@ def create_generated_meditation(data: Dict[str, Any], user: User) -> Meditation:
     from django.templatetags.static import static
     
     cover_map = {
-        "relaxation": "Cover_Entspannung.jpg",
-        "self_love": "Cover_Selbstliebe.jpg",
-        "focus_clarity": "Cover-Fokus_Klarheit.jpg",
-        "gratitude": "Cover-Dankbarkeit.jpg",
-        "trust": "Cover_Vertrauen.jpg",
-        "energy": "Cover_Energie.jpg",
+        "self_discovery": "Cover_Selbstfindung.jpg",
+        "emotional_healing": "Cover_Emotionale_Heilung.jpg",
+        "inner_peace": "Cover-innerer-Frieden.jpg",
         "transformation": "Cover_Transformation.jpg",
-        "inner_peace": "Cover-innerer-Frieden.jpg"
+        "energy": "Cover_Energie.jpg",
+        "grounding": "Cover_Erdung.jpg"
     }
     
     cover_filename = cover_map.get(category)

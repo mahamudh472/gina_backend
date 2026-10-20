@@ -45,55 +45,35 @@ def _generate_static_meditation_steps(category: str, q_a: Any) -> Tuple[str, Lis
 
     # Default category names & themes
     themes = {
-        MeditationCategory.RELAXATION: {
-            "title": f"Tiefenentspannung für{personal_touch or ' den Geist'}",
-            "greeting": f"Willkommen{personal_touch} zu deiner heutigen Meditationsreise für tiefe Entspannung. Schön, dass du hier bist.",
-            "personal": "Nimm dir einen Moment Zeit, um ganz bei dir anzukommen. Du darfst jetzt alles loslassen.",
-            "introduction": "Finde eine bequeme Haltung, schließe deine Augen und nimm einen tiefen Atemzug. Lass die Welt draußen leiser werden.",
-            "suggestion": "Spüre, wie mit jedem Ausatmen die Anspannung aus deinem Körper weicht. Deine Muskeln entspannen sich vollständig.",
-            "confirmation": "Es gibt jetzt nichts zu tun und nirgendwo hinzugehen. Du bist genau richtig, so wie du bist.",
-            "visualization": "Stell dir ein weites, ruhiges Meer vor. Die Wellen kommen und gehen im Rhythmus deines Atems.",
-            "conclusion": "Bringe die Aufmerksamkeit langsam zurück. Bewege deine Finger, nimm einen tiefen Atemzug und öffne deine Augen. Du bist vollkommen entspannt."
+        MeditationCategory.SELF_DISCOVERY: {
+            "title": f"Selbstfindung & Identität{personal_touch}",
+            "greeting": f"Willkommen{personal_touch} zu dieser Reise zu dir selbst. Entdecke, wer du wirklich bist.",
+            "personal": "Nimm dir einen Moment, um in dich hineinzuhorchen. Was macht dich einzigartig?",
+            "introduction": "Finde eine bequeme Haltung. Atme tief ein und lade dein wahres Selbst ein, sich zu zeigen.",
+            "suggestion": "Erlaube allen Masken zu fallen. Dein authentisches Selbst wartet darauf, entdeckt zu werden.",
+            "confirmation": "Du bist einzigartig und wertvoll. Deine Identität ist ein Geschenk.",
+            "visualization": "Stell dir einen klaren Spiegel vor, der dein wahres Selbst ohne Verzerrung reflektiert.",
+            "conclusion": "Nimm diese Erkenntnis mit in deinen Alltag. Du kennst deinen inneren Kompass."
         },
-        MeditationCategory.SELF_LOVE: {
-            "title": f"Liebevolles Annehmen{personal_touch or ' deines Selbst'}",
-            "greeting": f"Willkommen{personal_touch} zu dieser Reise der Selbstliebe. Heute ehren wir dich und dein Wesen.",
-            "personal": "Erlaube dir selbst, Mitgefühl und Wärme zu empfinden. Du bist ein wertvoller Teil dieser Welt.",
-            "introduction": "Lege eine Hand auf dein Herz. Spüre den sanften Schlag deines Herzens und atme tief ein.",
-            "suggestion": "Schenke dir selbst ein inneres Lächeln. Nimm all deine Gedanken und Gefühle ohne Urteil an.",
-            "confirmation": "Du bist genug. Genau in diesem Moment, mit all deinen Stärken und all deinen Schwächen.",
-            "visualization": "Visualisiere ein warmes, goldenes Licht in deinem Herzen, das sich mit jedem Atemzug weiter ausbreitet.",
-            "conclusion": "Nimm dieses Gefühl der Geborgenheit mit in deinen Tag. Wenn du bereit bist, öffne langsam deine Augen."
+        MeditationCategory.EMOTIONAL_HEALING: {
+            "title": f"Emotionale Heilung{personal_touch}",
+            "greeting": f"Willkommen{personal_touch} zu diesem geschützten Raum für deine Gefühle. Heilung beginnt hier.",
+            "personal": "Erlaube dir, all deine Emotionen willkommen zu heißen. Jedes Gefühl hat seinen Platz.",
+            "introduction": "Lege eine Hand auf dein Herz. Spüre, wie dein Atem einen sicheren Raum für Heilung schafft.",
+            "suggestion": "Lass alte Wunden im Licht der Liebe heilen. Vergebung befreit dich und andere.",
+            "confirmation": "Du bist ganz, auch mit deinen Narben. Heilung geschieht in deinem Tempo.",
+            "visualization": "Visualisiere warmes, goldenes Licht, das sanft durch deinen Körper fließt und alles heilt.",
+            "conclusion": "Nimm dieses Gefühl der Ganzheit mit. Dein Herz ist offen und heil."
         },
-        MeditationCategory.FOCUS_CLARITY: {
-            "title": f"Klarheit und Fokus{personal_touch}",
-            "greeting": f"Willkommen{personal_touch} zu dieser Fokus-Meditation. Lass uns deinen Geist klären und zentrieren.",
-            "personal": "Lass die Ablenkungen des Tages verblassen. Richte deine Aufmerksamkeit ganz auf diesen Moment.",
-            "introduction": "Sitz aufrecht und spüre die Stabilität deines Körpers. Atme klar und fokussiert ein.",
-            "suggestion": "Beobachte deine Gedanken wie vorbeiziehende Wolken. Kehre immer wieder sanft zum Atem zurück.",
-            "confirmation": "Dein Geist wird ruhig, klar und vollkommen fokussiert. Du fühlst dich innerlich geordnet.",
-            "visualization": "Stell dir einen kristallklaren Bergsee vor, der den weiten, wolkenlosen Himmel spiegelt.",
-            "conclusion": "Spüre die neu gewonnene mentale Stärke. Nimm diese Klarheit mit in deine Aufgaben. Öffne sanft deine Augen."
-        },
-        MeditationCategory.GRATITUDE: {
-            "title": f"Dankbarkeit & Fülle{personal_touch}",
-            "greeting": f"Willkommen{personal_touch} zu dieser Meditation der Dankbarkeit. Lass uns die Fülle in deinem Leben feiern.",
-            "personal": "Spüre nach, wofür du in deinem Leben von ganzem Herzen dankbar bist.",
-            "introduction": "Atme tief ein und spüre das Leben in dir. Lass Dankbarkeit durch deine Adern fließen.",
-            "suggestion": "Erinnere dich an kleine Momente der Freude, ein Lächeln, eine warme Geste. Lass dieses Gefühl wachsen.",
-            "confirmation": "Du bist reich beschenkt. Dankbarkeit ist der Schlüssel zu wahrer Zufriedenheit.",
-            "visualization": "Stell dir vor, wie mit jedem Atemzug funkelnde Lichter der Dankbarkeit von dir ausströmen.",
-            "conclusion": "Trage dieses Gefühl der Fülle im Herzen. Wenn du bereit bist, öffne sanft die Augen."
-        },
-        MeditationCategory.TRUST: {
-            "title": f"Urvertrauen & Zuversicht{personal_touch}",
-            "greeting": f"Willkommen{personal_touch} zu dieser Reise der Stärkung deines Urvertrauens. Du bist getragen.",
-            "personal": "Lass alle Sorgen und Zweifel los. Vertraue darauf, dass alles zu deinem Besten geschieht.",
-            "introduction": "Spüre den festen Boden unter dir. Er trägt dich, ohne dass du etwas dafür tun musst. Atme tief.",
-            "suggestion": "Lass das Gefühl von Sicherheit und Zuversicht in dir wachsen. Du bist stärker als jede Herausforderung.",
-            "confirmation": "Alles entfaltet sich zur richtigen Zeit. Hab Vertrauen in den Fluss deines Lebens.",
-            "visualization": "Visualisiere, wie du auf einer sicheren, warmen Wolke schwebst und dich ganz dem Fluss des Lebens hingibst.",
-            "conclusion": "Komme zurück in das Hier und Jetzt mit einem unerschütterlichen Vertrauen im Herzen. Öffne langsam die Augen."
+        MeditationCategory.GROUNDING: {
+            "title": f"Erdung & Stressbewältigung{personal_touch}",
+            "greeting": f"Willkommen{personal_touch} zu dieser Meditation für Stabilität im Alltag. Finde deinen festen Stand.",
+            "personal": "Spüre die Verbindung zur Erde. Du wirst getragen, egal was der Tag bringt.",
+            "introduction": "Stell dich fest auf den Boden. Atme tief ein und lass Anspannung mit jedem Ausatmen los.",
+            "suggestion": "Mit jedem Atem wachsen Wurzeln aus deinen Füßen tief in die Erde. Du bist stabil.",
+            "confirmation": "Du meisterst Herausforderungen mit Ruhe. Dein innerer Kern ist unerschütterlich.",
+            "visualization": "Stell dir einen mächtigen Baum vor, dessen Wurzeln tief in der Erde verankert sind.",
+            "conclusion": "Spüre die Kraft deiner Wurzeln. Gehe geerdet und gelassen in deinen Tag."
         },
         MeditationCategory.ENERGY: {
             "title": f"Lebensenergie & Vitalität{personal_touch}",
