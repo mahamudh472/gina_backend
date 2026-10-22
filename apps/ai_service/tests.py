@@ -240,7 +240,15 @@ class AdminAudioGeneratorTests(TestCase):
 
 
 from apps.ai_service.models import MeditationPrompt
-from apps.ai_service.meditation import build_prompt, DEFAULT_PROMPT_TEMPLATE
+from apps.ai_service.meditation import (
+    build_prompt,
+    build_request_data,
+    DEFAULT_CATEGORY,
+    DEFAULT_PROMPT_TEMPLATE,
+    CATEGORY_GUIDANCE,
+    CATEGORY_LABELS,
+)
+from apps.main.models import MeditationCategory
 
 class MeditationPromptTests(TestCase):
     def test_singleton_active_prompt_saving(self):
@@ -480,6 +488,32 @@ class MeditationPromptTests(TestCase):
         prompt = build_prompt(data)
         self.assertIn("Du bist eine weltklasse Meditationslehrerin", prompt)
         self.assertIn("Name: Anna", prompt)
+
+
+class MeditationCategoryMappingTests(TestCase):
+    """Guards the category -> label/guidance mappings against drift."""
+
+    def test_category_labels_cover_every_known_category(self):
+        known = {choice.value for choice in MeditationCategory}
+        self.assertEqual(set(CATEGORY_LABELS), known)
+
+    def test_category_guidance_covers_every_known_category(self):
+        known = {choice.value for choice in MeditationCategory}
+        self.assertEqual(set(CATEGORY_GUIDANCE), known)
+
+    def test_default_category_is_known(self):
+        self.assertIn(DEFAULT_CATEGORY, {choice.value for choice in MeditationCategory})
+        self.assertIn(DEFAULT_CATEGORY, CATEGORY_LABELS)
+        self.assertIn(DEFAULT_CATEGORY, CATEGORY_GUIDANCE)
+
+    def test_build_request_data_resolves_label_for_every_category(self):
+        for choice in MeditationCategory:
+            data = build_request_data(category=choice.value, q_a={})
+            self.assertEqual(data["category_label"], CATEGORY_LABELS[choice.value])
+
+    def test_build_request_data_falls_back_for_unknown_category(self):
+        data = build_request_data(category="does_not_exist", q_a={})
+        self.assertEqual(data["category_label"], CATEGORY_LABELS[DEFAULT_CATEGORY])
 
 
 

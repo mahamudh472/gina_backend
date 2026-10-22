@@ -28,6 +28,8 @@ DJANGO_STEP_ORDER = [
     MeditationStep.VISUALIZATION,
 ]
 
+DEFAULT_CATEGORY = MeditationCategory.SELF_DISCOVERY
+
 CATEGORY_LABELS = {
     "self_discovery": "Identität & Selbstfindung",
     "emotional_healing": "Emotionale Heilung",
@@ -102,7 +104,7 @@ def build_request_data(
     answers = _normalize_answers(q_a)
     return {
         "category": category,
-        "category_label": CATEGORY_LABELS.get(category, CATEGORY_LABELS["relaxation"]),
+        "category_label": CATEGORY_LABELS.get(category) or CATEGORY_LABELS[DEFAULT_CATEGORY],
         "user_name": answers.get("name") or answers.get("user_name") or answers.get("username") or "",
         "emotion": answers.get("emotion") or answers.get("current_mood") or answers.get("feeling") or "",
         "goal": answers.get("goal") or answers.get("focus") or answers.get("intention") or "innere Balance",
@@ -323,7 +325,7 @@ JSON-Form:
 
 def build_prompt(data: dict[str, Any]) -> str:
     category = data["category"]
-    guidance = CATEGORY_GUIDANCE.get(category, CATEGORY_GUIDANCE["self_discovery"])
+    guidance = CATEGORY_GUIDANCE.get(category) or CATEGORY_GUIDANCE[DEFAULT_CATEGORY]
     questionnaire_lines = "\n".join(
         f"- {key}: {value}" for key, value in data["questionnaire_answers"].items()
     ) or "- Keine zusaetzlichen Antworten"
