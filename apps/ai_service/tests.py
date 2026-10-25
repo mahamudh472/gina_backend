@@ -517,7 +517,13 @@ class MeditationCategoryMappingTests(TestCase):
 
 
 import json
-from apps.ai_service.meditation import _validate_payload, _generate_with_openai, generate_ai_meditation_content
+from apps.ai_service.meditation import (
+    _validate_payload,
+    _generate_with_openai,
+    _ensure_format_instructions,
+    generate_ai_meditation_content,
+    MANDATORY_JSON_FORMAT_TEMPLATE,
+)
 from apps.ai_service.exceptions import MeditationGenerationError
 
 class ValidatePayloadTests(TestCase):
@@ -623,6 +629,77 @@ class ValidatePayloadTests(TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result["title"], "Identität & Selbstfindung Meditation")
         self.assertEqual(len(result["steps"]), 5)
+
+    def test_ensure_format_instructions_appends_when_missing(self):
+        bare_prompt = "Erstelle eine geführte Meditation für Anna."
+        injected = _ensure_format_instructions(bare_prompt, 600)
+        self.assertIn("Erstelle eine geführte Meditation für Anna.", injected)
+        self.assertIn('"title"', injected)
+        self.assertIn('"steps"', injected)
+        self.assertIn('"step_type"', injected)
+        self.assertIn('"total_duration": 600', injected)
+
+    def test_ensure_format_instructions_does_not_duplicate_when_present(self):
+        already_formatted = (
+            'Some prompt...\nJSON-Form:\n{"title": "test", "total_duration": 600, "steps": [{"step_type": "greeting"}]}'
+        )
+        result = _ensure_format_instructions(already_formatted, 600)
+        self.assertEqual(result, already_formatted)
+
+    @patch("openai.OpenAI")
+    @override_settings(LLM_PROVIDER="openai", LLM_API_KEY="test-llm-key")
+    def test_openai_call_injects_format_into_prompt_when_db_prompt_is_bare(self, mock_openai_cls):
+        MeditationPrompt.objects.all().delete()
+        MeditationPrompt.objects.create(
+            name="Bare Admin Prompt",
+            category="self_discovery",
+            prompt_template="Sprich ruhig und führe den Nutzer.",
+            is_active=True,
+        )
+
+        mock_client = mock_openai_cls.return_value
+        mock_response = type("Response", (), {})()
+        mock_choice = type("Choice", (), {})()
+        mock_message = type("Message", (), {})()
+        mock_message.content = json.dumps({
+            "title": "Innere Ruhe",
+            "steps": [
+                {"step_type": "greeting", "content": "Hi", "duration": 60},
+                {"step_type": "personal_reflection", "content": "Reflect", "duration": 240},
+                {"step_type": "suggestion", "content": "Suggestions", "duration": 120},
+                {"step_type": "affirmation", "content": "Affirmations", "duration": 60},
+                {"step_type": "visualization", "content": "Journey", "duration": 120},
+            ]
+        })
+        mock_choice.message = mock_message
+        mock_response.choices = [mock_choice]
+        mock_client.chat.completions.create.return_value = mock_response
+
+        request_data = {
+            "category": "self_discovery",
+            "category_label": "Identität & Selbstfindung",
+            "duration": 10,
+            "goal": "Ruhe",
+            "avoid": "Stress",
+            "experience": "beginner",
+            "body_tension": [],
+            "nature_sound": "",
+            "landscape": "",
+            "voice_name": "",
+            "user_name": "Test User",
+            "questionnaire_answers": {},
+        }
+        _generate_with_openai(request_data)
+
+        # Inspect the prompt actually sent to OpenAI
+        call_kwargs = mock_client.chat.completions.create.call_args.kwargs
+        messages = call_kwargs["messages"]
+        user_msg = next(m["content"] for m in messages if m["role"] == "user")
+        self.assertIn("Sprich ruhig und führe den Nutzer.", user_msg)
+        self.assertIn('"title"', user_msg)
+        self.assertIn('"steps"', user_msg)
+        self.assertIn('"step_type"', user_msg)
+
 
 
 

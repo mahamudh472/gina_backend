@@ -173,6 +173,76 @@ def _generate_with_llm(request_data: dict[str, Any]) -> dict[str, Any] | None:
     raise MeditationGenerationError(f"Unsupported LLM_PROVIDER '{provider}'. Only 'openai' is supported.")
 
 
+MANDATORY_JSON_FORMAT_TEMPLATE = """
+# PFLICHTANFORDERUNGEN AN DAS AUSGABEFORMAT (JSON):
+Antworte ausschliesslich als valides JSON-Objekt ohne Markdown (kein ```json).
+Das JSON-Objekt MUSS zwingend folgende Struktur und Felder aufweisen:
+{
+  "title": "<Aussagekraeftiger Titel der Meditation als String>",
+  "summary": "<Kurze Zusammenfassung>",
+  "total_duration": {total_duration},
+  "steps": [
+    {
+      "step_type": "greeting",
+      "content": "<Begruessungstext fuer gesprochenes Audio>",
+      "duration": 60,
+      "start_time": 0,
+      "end_time": 60
+    },
+    {
+      "step_type": "personal_reflection",
+      "content": "<Text fuer persoenliche Reflexion und Koerperfokus>",
+      "duration": 240,
+      "start_time": 60,
+      "end_time": 300
+    },
+    {
+      "step_type": "suggestion",
+      "content": "<Suggestionen mit [[PAUSE_4S]] Pausenmarkern>",
+      "duration": 120,
+      "start_time": 300,
+      "end_time": 420
+    },
+    {
+      "step_type": "affirmation",
+      "content": "<Affirmationen mit [[PAUSE_4S]] Pausenmarkern>",
+      "duration": 60,
+      "start_time": 420,
+      "end_time": 480
+    },
+    {
+      "step_type": "visualization",
+      "content": "<Visualisierungsreise in der gewaehlten Landschaft>",
+      "duration": 240,
+      "start_time": 480,
+      "end_time": 720
+    }
+  ]
+}
+
+KRITISCHE REGELN:
+1. Das Feld "title" ist zwingend erforderlich (darf nicht fehlen oder leer sein).
+2. Das Feld "steps" muss eine Liste von Objekten sein, genau in der Reihenfolge: greeting, personal_reflection, suggestion, affirmation, visualization.
+3. Jeder Schritt in "steps" MUSS die Felder "step_type", "content" und "duration" (in Sekunden) enthalten.
+"""
+
+
+def _ensure_format_instructions(prompt: str, total_duration: int) -> str:
+    """Ensure that the prompt sent to the LLM always contains the required JSON schema instructions.
+    If a custom prompt template configured in the database omits the JSON format or required fields,
+    this automatically appends the mandatory JSON format instructions.
+    """
+    has_title_instruction = '"title"' in prompt or "'title'" in prompt
+    has_steps_instruction = '"steps"' in prompt or "'steps'" in prompt
+    has_step_type = "step_type" in prompt
+
+    if not (has_title_instruction and has_steps_instruction and has_step_type):
+        format_instructions = MANDATORY_JSON_FORMAT_TEMPLATE.replace("{total_duration}", str(total_duration))
+        prompt = f"{prompt.strip()}\n\n{format_instructions.strip()}"
+
+    return prompt
+
+
 def _generate_with_openai(request_data: dict[str, Any]) -> dict[str, Any] | None:
     provider = str(getattr(settings, "LLM_PROVIDER", "openai")).lower()
     if provider != "openai":
@@ -188,6 +258,9 @@ def _generate_with_openai(request_data: dict[str, Any]) -> dict[str, Any] | None
         raise MeditationGenerationError("The openai package is not installed.")
 
     prompt = build_prompt(request_data)
+    total_duration = request_data.get("duration", 10) * 60
+    prompt = _ensure_format_instructions(prompt, total_duration)
+
     content = ""
     try:
         response = OpenAI(api_key=api_key).chat.completions.create(
@@ -197,8 +270,11 @@ def _generate_with_openai(request_data: dict[str, Any]) -> dict[str, Any] | None
                 {
                     "role": "system",
                     "content": (
-                        "You generate valid meditation JSON only. "
-                        "Return a JSON object containing the keys: 'title', 'summary', 'total_duration', and 'steps'."
+                        "You are an expert meditation instructor. "
+                        "You must respond ONLY with a valid JSON object (no markdown, no code fences). "
+                        "The JSON object must contain the top-level keys: 'title' (string), 'summary' (string), "
+                        "'total_duration' (number), and 'steps' (array of objects with 'step_type', 'content', 'duration'). "
+                        "Allowed step_type values: 'greeting', 'personal_reflection', 'suggestion', 'affirmation', 'visualization'."
                     ),
                 },
                 {"role": "user", "content": prompt},
@@ -209,7 +285,7 @@ def _generate_with_openai(request_data: dict[str, Any]) -> dict[str, Any] | None
         payload = json.loads(content)
         category_label = request_data.get("category_label")
         default_title = f"{category_label} Meditation" if category_label else "Geführte Meditation"
-        return _validate_payload(payload, request_data["duration"] * 60, default_title=default_title)
+        return _validate_payload(payload, total_duration, default_title=default_title)
     except Exception as exc:
         logger.error(
             "OpenAI meditation generation failed: %s. Raw LLM content: %s",
