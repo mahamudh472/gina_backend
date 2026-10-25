@@ -516,4 +516,114 @@ class MeditationCategoryMappingTests(TestCase):
         self.assertEqual(data["category_label"], CATEGORY_LABELS[DEFAULT_CATEGORY])
 
 
+import json
+from apps.ai_service.meditation import _validate_payload, _generate_with_openai, generate_ai_meditation_content
+from apps.ai_service.exceptions import MeditationGenerationError
+
+class ValidatePayloadTests(TestCase):
+    def test_standard_payload_validation(self):
+        payload = {
+            "title": "Inner Calm",
+            "steps": [
+                {"step_type": "greeting", "content": "Welcome", "duration": 60},
+                {"step_type": "personal_reflection", "content": "Reflect", "duration": 240},
+            ]
+        }
+        validated = _validate_payload(payload, 300)
+        self.assertEqual(validated["title"], "Inner Calm")
+        self.assertEqual(len(validated["steps"]), 2)
+        self.assertEqual(validated["total_duration"], 300)
+
+    def test_payload_with_missing_title_falls_back(self):
+        payload = {
+            "steps": [
+                {"step_type": "greeting", "content": "Welcome", "duration": 60},
+            ]
+        }
+        validated = _validate_payload(payload, 60, default_title="Fallback Title")
+        self.assertEqual(validated["title"], "Fallback Title")
+
+    def test_payload_with_german_titel_key(self):
+        payload = {
+            "titel": "Deutsche Meditation",
+            "steps": [
+                {"step_type": "greeting", "content": "Willkommen", "duration": 60},
+            ]
+        }
+        validated = _validate_payload(payload, 60)
+        self.assertEqual(validated["title"], "Deutsche Meditation")
+
+    def test_payload_wrapped_under_root_key(self):
+        payload = {
+            "meditation": {
+                "title": "Wrapped Meditation",
+                "steps": [
+                    {"step_type": "greeting", "content": "Welcome", "duration": 60},
+                ]
+            }
+        }
+        validated = _validate_payload(payload, 60)
+        self.assertEqual(validated["title"], "Wrapped Meditation")
+        self.assertEqual(len(validated["steps"]), 1)
+
+    def test_payload_with_german_steps_and_fields(self):
+        payload = {
+            "titel": "Ruhe finden",
+            "schritte": [
+                {"schritt": "greeting", "inhalt": "Hallo", "dauer": 60},
+            ]
+        }
+        validated = _validate_payload(payload, 60)
+        self.assertEqual(validated["title"], "Ruhe finden")
+        self.assertEqual(validated["steps"][0]["step_type"], "greeting")
+        self.assertEqual(validated["steps"][0]["content"], "Hallo")
+        self.assertEqual(validated["steps"][0]["duration"], 60)
+
+    def test_payload_without_steps_raises(self):
+        payload = {"title": "No steps"}
+        with self.assertRaises(ValueError):
+            _validate_payload(payload, 60)
+
+    @patch("openai.OpenAI")
+    @override_settings(LLM_PROVIDER="openai", LLM_API_KEY="test-llm-key")
+    def test_openai_generation_tolerates_missing_title(self, mock_openai_cls):
+        mock_client = mock_openai_cls.return_value
+        mock_response = type("Response", (), {})()
+        mock_choice = type("Choice", (), {})()
+        mock_message = type("Message", (), {})()
+        # Model returns JSON without title
+        mock_message.content = json.dumps({
+            "steps": [
+                {"step_type": "greeting", "content": "Hello user", "duration": 60},
+                {"step_type": "personal_reflection", "content": "Reflect deep", "duration": 180},
+                {"step_type": "suggestion", "content": "Feel peace", "duration": 120},
+                {"step_type": "affirmation", "content": "I am calm", "duration": 60},
+                {"step_type": "visualization", "content": "Imagine the lake", "duration": 180},
+            ]
+        })
+        mock_choice.message = mock_message
+        mock_response.choices = [mock_choice]
+        mock_client.chat.completions.create.return_value = mock_response
+
+        request_data = {
+            "category": "self_discovery",
+            "category_label": "Identität & Selbstfindung",
+            "duration": 10,
+            "goal": "Ruhe",
+            "avoid": "Stress",
+            "experience": "beginner",
+            "body_tension": [],
+            "nature_sound": "",
+            "landscape": "",
+            "voice_name": "",
+            "user_name": "Test User",
+            "questionnaire_answers": {},
+        }
+        result = _generate_with_openai(request_data)
+        self.assertIsNotNone(result)
+        self.assertEqual(result["title"], "Identität & Selbstfindung Meditation")
+        self.assertEqual(len(result["steps"]), 5)
+
+
+
 

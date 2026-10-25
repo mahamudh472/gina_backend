@@ -90,6 +90,8 @@ def generate_ai_meditation_content(
     )
 
     payload = _generate_with_llm(request_data)
+    if not payload:
+        raise MeditationGenerationError("AI meditation generator returned no payload.")
     return _convert_payload_to_django_steps(payload)
 
 
@@ -186,20 +188,34 @@ def _generate_with_openai(request_data: dict[str, Any]) -> dict[str, Any] | None
         raise MeditationGenerationError("The openai package is not installed.")
 
     prompt = build_prompt(request_data)
+    content = ""
     try:
         response = OpenAI(api_key=api_key).chat.completions.create(
             model=getattr(settings, "LLM_MODEL", None) or "gpt-4o-mini",
             response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": "You generate valid meditation JSON only."},
+                {
+                    "role": "system",
+                    "content": (
+                        "You generate valid meditation JSON only. "
+                        "Return a JSON object containing the keys: 'title', 'summary', 'total_duration', and 'steps'."
+                    ),
+                },
                 {"role": "user", "content": prompt},
             ],
             timeout=getattr(settings, "LLM_TIMEOUT_SECONDS", 60),
         )
         content = response.choices[0].message.content or "{}"
         payload = json.loads(content)
-        return _validate_payload(payload, request_data["duration"] * 60)
+        category_label = request_data.get("category_label")
+        default_title = f"{category_label} Meditation" if category_label else "Geführte Meditation"
+        return _validate_payload(payload, request_data["duration"] * 60, default_title=default_title)
     except Exception as exc:
+        logger.error(
+            "OpenAI meditation generation failed: %s. Raw LLM content: %s",
+            exc,
+            content or "N/A",
+        )
         raise MeditationGenerationError(f"OpenAI meditation generation failed: {exc}") from exc
 
 
@@ -367,20 +383,73 @@ def build_prompt(data: dict[str, Any]) -> str:
 
 
 
-def _validate_payload(payload: dict[str, Any], expected_total_duration: int) -> dict[str, Any]:
-    if not isinstance(payload, dict) or not payload.get("title"):
-        raise ValueError("Meditation payload requires a title.")
-    if not isinstance(payload.get("steps"), list) or not payload["steps"]:
+def _validate_payload(
+    payload: Any,
+    expected_total_duration: int,
+    default_title: str = "Geführte Meditation",
+) -> dict[str, Any]:
+    # Handle list response if model returned steps directly
+    if isinstance(payload, list):
+        payload = {"steps": payload}
+
+    if not isinstance(payload, dict):
+        raise ValueError(f"Meditation payload must be a JSON object, got {type(payload).__name__}.")
+
+    # Unwrap root key if the model wrapped the response (e.g. {"meditation": {...}})
+    for wrapper_key in ("meditation", "data", "result", "response", "output"):
+        nested = payload.get(wrapper_key)
+        if isinstance(nested, dict) and any(k in nested for k in ("steps", "title", "titel", "schritte")):
+            payload = nested
+            break
+
+    # Look for title variants or fallback to default_title
+    title = ""
+    for candidate in ("title", "titel", "Title", "Titel", "name", "Name", "thema", "Thema", "ueberschrift", "überschrift", "heading", "label"):
+        val = payload.get(candidate)
+        if isinstance(val, str) and val.strip():
+            title = val.strip()
+            break
+    if not title:
+        title = default_title
+    payload["title"] = title
+
+    # Look for steps variants
+    steps = payload.get("steps")
+    if not isinstance(steps, list):
+        for candidate_key in ("schritte", "sections", "meditation_steps", "items"):
+            candidate = payload.get(candidate_key)
+            if isinstance(candidate, list):
+                steps = candidate
+                break
+
+    if not isinstance(steps, list) or not steps:
         raise ValueError("Meditation payload requires steps.")
 
     normalized_steps = []
     cursor = 0
-    for step in payload["steps"]:
-        step_type = str(step.get("step_type") or "").strip()
-        content = str(step.get("content") or "").strip()
-        duration = int(step.get("duration") or 0)
-        if not step_type or not content or duration <= 0:
-            raise ValueError("Each meditation step requires step_type, content and duration.")
+    for step in steps:
+        if not isinstance(step, dict):
+            continue
+        step_type = str(
+            step.get("step_type")
+            or step.get("type")
+            or step.get("typ")
+            or step.get("step")
+            or step.get("schritt")
+            or ""
+        ).strip()
+        content = str(
+            step.get("content")
+            or step.get("text")
+            or step.get("inhalt")
+            or ""
+        ).strip()
+        duration = int(step.get("duration") or step.get("dauer") or 0)
+        if not step_type or not content:
+            continue
+        if duration <= 0:
+            duration = max(30, expected_total_duration // max(1, len(steps)))
+
         normalized_steps.append(
             {
                 "step_type": step_type,
@@ -391,6 +460,9 @@ def _validate_payload(payload: dict[str, Any], expected_total_duration: int) -> 
             }
         )
         cursor += duration
+
+    if not normalized_steps:
+        raise ValueError("Meditation payload steps contain no valid content.")
 
     if abs(cursor - expected_total_duration) > 60:
         logger.warning("Generated duration %s differs from requested %s.", cursor, expected_total_duration)
