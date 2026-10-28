@@ -114,12 +114,43 @@ class MeditationGenerationResponseSerializer(serializers.ModelSerializer):
         return duration.total_seconds() if duration else 0
 
 
+CATEGORY_ALIASES = {
+    # German names / slugs
+    "identitaet": MeditationCategory.IDENTITY,
+    "identität": MeditationCategory.IDENTITY,
+    "emotion": MeditationCategory.EMOTIONS,
+    "emotionen": MeditationCategory.EMOTIONS,
+    "heilung": MeditationCategory.HEALING,
+    "zukunft": MeditationCategory.FUTURE,
+    "energie": MeditationCategory.ENERGY,
+    "alltag": MeditationCategory.EVERYDAY_LIFE,
+    # English names
+    "identity": MeditationCategory.IDENTITY,
+    "emotions": MeditationCategory.EMOTIONS,
+    "healing": MeditationCategory.HEALING,
+    "future": MeditationCategory.FUTURE,
+    "energy": MeditationCategory.ENERGY,
+    "everyday_life": MeditationCategory.EVERYDAY_LIFE,
+}
+
+
 class MeditationGenerateSerializer(serializers.Serializer):
-    category = serializers.ChoiceField(choices=MeditationCategory.choices)
+    category = serializers.CharField()
     charecter_voice_id = serializers.IntegerField()
     experience_question_answers = serializers.JSONField()
     nature_sound_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     background_image_id = serializers.IntegerField(required=False, allow_null=True)
+
+    def validate_category(self, value):
+        normalized = str(value).strip().lower()
+        if normalized in CATEGORY_ALIASES:
+            return CATEGORY_ALIASES[normalized]
+        valid_choices = [str(c[0]) for c in MeditationCategory.choices]
+        if normalized in valid_choices:
+            return normalized
+        raise serializers.ValidationError(
+            f"Invalid category '{value}'. Valid categories are: {', '.join(valid_choices)}."
+        )
 
     def validate_charecter_voice_id(self, value):
         if not CharecterVoice.objects.filter(id=value).exists():

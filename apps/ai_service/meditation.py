@@ -28,47 +28,58 @@ DJANGO_STEP_ORDER = [
     MeditationStep.VISUALIZATION,
 ]
 
-DEFAULT_CATEGORY = MeditationCategory.SELF_DISCOVERY
+DEFAULT_CATEGORY = MeditationCategory.IDENTITY
 
 CATEGORY_LABELS = {
-    "self_discovery": "Identität & Selbstfindung",
-    "emotional_healing": "Emotionale Heilung",
-    "inner_peace": "Innerer Frieden",
-    "transformation": "Transformation",
+    "identity": "Identität",
+    "emotions": "Emotionen",
+    "healing": "Heilung",
+    "future": "Zukunft",
     "energy": "Energie",
-    "grounding": "Erdung & Stressmanagement",
+    "everyday_life": "Alltag",
+}
+
+CATEGORY_ALIASES = {
+    "identitaet": "identity",
+    "identität": "identity",
+    "emotion": "emotions",
+    "emotionen": "emotions",
+    "heilung": "healing",
+    "zukunft": "future",
+    "energie": "energy",
+    "alltag": "everyday_life",
 }
 
 CATEGORY_GUIDANCE = {
-    "self_discovery": {
-        "focus": "Selbsterkenntnis, Identität, innere Wahrheit und authentisches Sein",
-        "visualization": "Spiegel, klarer See, Sternenhimmel und innere Kompass",
-        "affirmation": "Ich erkenne mich selbst. Mein wahres Selbst führt mich.",
+    "identity": {
+        "focus": "Selbsterkenntnis, Identität, innere Wahrheit, Selbstwert und authentisches Sein",
+        "visualization": "klarer Bergsee, Spiegel, Sternenhimmel und innerer Kompass",
+        "affirmation": "Ich erkenne mich selbst. Mein wahres Selbst führt mich voller Klarheit.",
     },
-    "emotional_healing": {
-        "focus": "Emotionale Verarbeitung, Heilung alter Wunden, Loslassen und Vergebung",
-        "visualization": "heilendes Licht, fließendes Wasser, schützender Kokon und sanfte Umarmung",
-        "affirmation": "Ich erlaube mir zu fühlen und zu heilen. Meine Emotionen sind willkommen.",
+    "emotions": {
+        "focus": "Emotionale Wahrnehmung, Achtsamkeit für Gefühle, emotionale Balance und Annahme",
+        "visualization": "sanfte Wellen, warmes goldenes Licht, weiter Himmel und schützender Raum",
+        "affirmation": "Ich erlaube mir zu fühlen. Jedes Gefühl darf sein und bringt mich mir näher.",
     },
-    "inner_peace": {
-        "focus": "Stille, Präsenz, innerer Raum und tiefer Frieden",
-        "visualization": "Zen-Garten, Mondlicht, stiller See und weiter Himmel",
-        "affirmation": "Stille lebt in mir. Frieden ist bereits da.",
+    "healing": {
+        "focus": "Innere Regeneration, Heilung alter Wunden, Loslassen von Schmerz und Vergebung",
+        "visualization": "heilende Quelle, fließendes klares Wasser, schützender Kokon und tiefes Aufatmen",
+        "affirmation": "Ich lasse los, was mich belastet. Heilung und Frieden durchströmen mich.",
     },
-    "transformation": {
-        "focus": "Wachstum, Erneuerung, Loslassen und Neubeginn",
-        "visualization": "Schmetterling, Phoenix, Frühlingswald und neue Wege",
-        "affirmation": "Ich öffne mich für Wandel. Ich wachse in mein Neues hinein.",
+    "future": {
+        "focus": "Zukunftsvision, Zuversicht, Neuausrichtung, Manifestation und Vertrauen in den eigenen Weg",
+        "visualization": "aufgehende Sonne am Horizont, offene Pfade, weiter Weitblick und Aufblühen",
+        "affirmation": "Ich erschaffe mein Wunschleben. Voller Vertrauen gehe ich meiner Zukunft entgegen.",
     },
     "energy": {
-        "focus": "Lebendigkeit, Motivation, Kraft und sanftes Erwachen",
-        "visualization": "Sonnenaufgang, goldenes Licht und klare, funkelnde Luft",
-        "affirmation": "Neue Energie fließt durch mich. Ich bin lebendig und bereit.",
+        "focus": "Lebendigkeit, Vitalität, Motivation, Frische und innere Stärke",
+        "visualization": "strahlende Sonne, funkelnde Bergluft, wärmendes Licht und lebendige Kraft",
+        "affirmation": "Neue Lebensenergie fließt durch jede Zelle meines Körpers. Ich bin voller Kraft und Tatendrang.",
     },
-    "grounding": {
-        "focus": "Stressabbau, Stabilität, Erdung und Bewältigung des Alltags",
-        "visualization": "starke Wurzeln, Berg, fester Boden und schützender Baum",
-        "affirmation": "Ich bin geerdet und stabil. Ich meistere meinen Alltag mit Ruhe.",
+    "everyday_life": {
+        "focus": "Gelassenheit im Alltag, Stressabbau, Zentrierung und innere Stabilität",
+        "visualization": "starke tief verwurzelte Bäume, ruhiger Waldweg, fester Boden unter den Füßen",
+        "affirmation": "Ich begegne meinem Alltag mit Ruhe und Leichtigkeit. Ich bleibe in meiner Mitte.",
     },
 }
 
@@ -104,9 +115,10 @@ def build_request_data(
     background_image_name: str = "",
 ) -> dict[str, Any]:
     answers = _normalize_answers(q_a)
+    normalized_category = CATEGORY_ALIASES.get(category, category)
     return {
-        "category": category,
-        "category_label": CATEGORY_LABELS.get(category) or CATEGORY_LABELS[DEFAULT_CATEGORY],
+        "category": normalized_category,
+        "category_label": CATEGORY_LABELS.get(normalized_category) or CATEGORY_LABELS.get(category) or CATEGORY_LABELS[DEFAULT_CATEGORY],
         "user_name": answers.get("name") or answers.get("user_name") or answers.get("username") or "",
         "emotion": answers.get("emotion") or answers.get("current_mood") or answers.get("feeling") or "",
         "goal": answers.get("goal") or answers.get("focus") or answers.get("intention") or "innere Balance",
@@ -416,7 +428,8 @@ JSON-Form:
 
 
 def build_prompt(data: dict[str, Any]) -> str:
-    category = data["category"]
+    raw_cat = str(data.get("category") or "")
+    category = CATEGORY_ALIASES.get(raw_cat, raw_cat)
     guidance = CATEGORY_GUIDANCE.get(category) or CATEGORY_GUIDANCE[DEFAULT_CATEGORY]
     questionnaire_lines = "\n".join(
         f"- {key}: {value}" for key, value in data["questionnaire_answers"].items()

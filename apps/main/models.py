@@ -40,12 +40,12 @@ class BackgroundImage(models.Model):
 
 
 class MeditationCategory(models.TextChoices):
-    SELF_DISCOVERY = "self_discovery", "Identität & Selbstfindung"
-    EMOTIONAL_HEALING = "emotional_healing", "Emotionale Heilung"
-    INNER_PEACE = "inner_peace", "Innerer Frieden"
-    TRANSFORMATION = "transformation", "Transformation"
+    IDENTITY = "identity", "Identität"
+    EMOTIONS = "emotions", "Emotionen"
+    HEALING = "healing", "Heilung"
+    FUTURE = "future", "Zukunft"
     ENERGY = "energy", "Energie"
-    GROUNDING = "grounding", "Erdung & Stressmanagement"
+    EVERYDAY_LIFE = "everyday_life", "Alltag"
 
 class MeditationStep(models.TextChoices):
     GREETING = "greeting", "Begrüßung"

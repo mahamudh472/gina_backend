@@ -247,7 +247,7 @@ Use this shape as request body. Note that `nature_sound_name` and `background_im
 
 ```json
 {
-  "category": "relaxation",
+  "category": "identity",
   "charecter_voice_id": 1,
   "experience_question_answers": {
     "name": "Anna",
@@ -258,7 +258,7 @@ Use this shape as request body. Note that `nature_sound_name` and `background_im
 }
 ```
 
-Categories available: `self_discovery`, `emotional_healing`, `inner_peace`, `transformation`, `energy`, `grounding`.
+Categories available: `identity` (Identität), `emotions` (Emotionen), `healing` (Heilung), `future` (Zukunft), `energy` (Energie), `everyday_life` (Alltag). German aliases such as `identitaet`, `emotionen`, `heilung`, `zukunft`, `energie`, `alltag` are also accepted.
 
 ### Response Payload Reference
 

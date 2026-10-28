@@ -45,35 +45,45 @@ def _generate_static_meditation_steps(category: str, q_a: Any) -> Tuple[str, Lis
 
     # Default category names & themes
     themes = {
-        MeditationCategory.SELF_DISCOVERY: {
-            "title": f"Selbstfindung & Identität{personal_touch}",
+        MeditationCategory.IDENTITY: {
+            "title": f"Identität & Selbstfindung{personal_touch}",
             "greeting": f"Willkommen{personal_touch} zu dieser Reise zu dir selbst. Entdecke, wer du wirklich bist.",
             "personal": "Nimm dir einen Moment, um in dich hineinzuhorchen. Was macht dich einzigartig?",
             "introduction": "Finde eine bequeme Haltung. Atme tief ein und lade dein wahres Selbst ein, sich zu zeigen.",
-            "suggestion": "Erlaube allen Masken zu fallen. Dein authentisches Selbst wartet darauf, entdeckt zu werden.",
-            "confirmation": "Du bist einzigartig und wertvoll. Deine Identität ist ein Geschenk.",
-            "visualization": "Stell dir einen klaren Spiegel vor, der dein wahres Selbst ohne Verzerrung reflektiert.",
-            "conclusion": "Nimm diese Erkenntnis mit in deinen Alltag. Du kennst deinen inneren Kompass."
+            "suggestion": "Erlaube allen Masken zu fallen. Dein authentisches Selbst wartet darauf, gelebt zu werden.",
+            "confirmation": "Du bist einzigartig und wertvoll. Deine Identität ist dein schönstes Geschenk.",
+            "visualization": "Stell dir einen klaren See vor, der dein wahres Selbst ohne jede Verzerrung reflektiert.",
+            "conclusion": "Nimm diese Klarheit mit. Du kennst deinen inneren Kompass."
         },
-        MeditationCategory.EMOTIONAL_HEALING: {
-            "title": f"Emotionale Heilung{personal_touch}",
-            "greeting": f"Willkommen{personal_touch} zu diesem geschützten Raum für deine Gefühle. Heilung beginnt hier.",
-            "personal": "Erlaube dir, all deine Emotionen willkommen zu heißen. Jedes Gefühl hat seinen Platz.",
-            "introduction": "Lege eine Hand auf dein Herz. Spüre, wie dein Atem einen sicheren Raum für Heilung schafft.",
-            "suggestion": "Lass alte Wunden im Licht der Liebe heilen. Vergebung befreit dich und andere.",
-            "confirmation": "Du bist ganz, auch mit deinen Narben. Heilung geschieht in deinem Tempo.",
-            "visualization": "Visualisiere warmes, goldenes Licht, das sanft durch deinen Körper fließt und alles heilt.",
-            "conclusion": "Nimm dieses Gefühl der Ganzheit mit. Dein Herz ist offen und heil."
+        MeditationCategory.EMOTIONS: {
+            "title": f"Emotionale Balance{personal_touch}",
+            "greeting": f"Willkommen{personal_touch} zu diesem geschützten Raum für deine Gefühle. Alles darf sein.",
+            "personal": "Erlaube dir, all deine Emotionen willkommen zu heißen. Jedes Gefühl hat eine Botschaft für dich.",
+            "introduction": "Lege eine Hand sanft auf dein Herz. Spüre, wie dein Atem dir Raum und Weite schenkt.",
+            "suggestion": "Beobachte deine Emotionen wie sanfte Wellen auf dem Meer. Sie kommen, und sie ziehen wieder weiter.",
+            "confirmation": "Du bist im Frieden mit deinen Gefühlen. Dein Herz ist offen, weit und stark.",
+            "visualization": "Visualisiere einen weiten Himmel. Wolken ziehen vorüber, doch der Himmel bleibt unberührt.",
+            "conclusion": "Nimm diese emotionale Ruhe und Ausgeglichenheit mit in deinen Tag."
         },
-        MeditationCategory.GROUNDING: {
-            "title": f"Erdung & Stressbewältigung{personal_touch}",
-            "greeting": f"Willkommen{personal_touch} zu dieser Meditation für Stabilität im Alltag. Finde deinen festen Stand.",
-            "personal": "Spüre die Verbindung zur Erde. Du wirst getragen, egal was der Tag bringt.",
-            "introduction": "Stell dich fest auf den Boden. Atme tief ein und lass Anspannung mit jedem Ausatmen los.",
-            "suggestion": "Mit jedem Atem wachsen Wurzeln aus deinen Füßen tief in die Erde. Du bist stabil.",
-            "confirmation": "Du meisterst Herausforderungen mit Ruhe. Dein innerer Kern ist unerschütterlich.",
-            "visualization": "Stell dir einen mächtigen Baum vor, dessen Wurzeln tief in der Erde verankert sind.",
-            "conclusion": "Spüre die Kraft deiner Wurzeln. Gehe geerdet und gelassen in deinen Tag."
+        MeditationCategory.HEALING: {
+            "title": f"Heilung & Loslassen{personal_touch}",
+            "greeting": f"Willkommen{personal_touch} zu deiner Heilungsreise. Hier darfst du loslassen und regenerieren.",
+            "personal": "Schenke deinem Körper und deiner Seele die Erlaubnis, tief durchzuatmen und alte Belastungen abzugeben.",
+            "introduction": "Finde eine Position vollkommener Entspannung. Atme tief ein und lass beim Ausatmen alles Schwere gehen.",
+            "suggestion": "Lass alte Wunden sanft heilen. Mit jedem Atemzug fließt regenerierende Kraft durch dein ganzes Wesen.",
+            "confirmation": "Du wirst getragen und beschützt. Heilung geschieht ganz sanft in deinem eigenen Tempo.",
+            "visualization": "Visualisiere warmes, goldenes Licht, das sanft durch jede Zelle fließt und wohlige Heilung schenkt.",
+            "conclusion": "Fühle die Erneuerung in deinem Herzen. Du bist ganz, gelöst und frei."
+        },
+        MeditationCategory.FUTURE: {
+            "title": f"Zukunft & Vision{personal_touch}",
+            "greeting": f"Willkommen{personal_touch} zu deiner Visions-Meditation. Erschaffe aktiv deine Zukunft.",
+            "personal": "Öffne deinen Geist für neue Möglichkeiten. Deine Träume und Ziele warten auf dich.",
+            "introduction": "Atme tief ein und spüre die Vorfreude auf das, was kommt. Atme aus und lass alte Zweifel los.",
+            "suggestion": "Erlaube dir, groß zu träumen. Dein zukünftiges Ich sendet dir Kraft und Zuversicht.",
+            "confirmation": "Du bist der Schöpfer deiner Realität. Jeder neue Tag ist eine Chance für deinen Neuanfang.",
+            "visualization": "Visualisiere deinen Lebensweg im strahlenden Morgenlicht. Jeder Schritt führt dich sicher zu deinen Zielen.",
+            "conclusion": "Gehe gestärkt und voller Vorfreude deinen Weg. Deine Zukunft beginnt im Hier und Jetzt."
         },
         MeditationCategory.ENERGY: {
             "title": f"Lebensenergie & Vitalität{personal_touch}",
@@ -85,25 +95,15 @@ def _generate_static_meditation_steps(category: str, q_a: Any) -> Tuple[str, Lis
             "visualization": "Visualisiere eine strahlende, warme Sonne direkt über deinem Kopf, die dich mit unendlicher Energie auflädt.",
             "conclusion": "Strecke dich, nimm diese kraftvolle Schwingung mit und starte voller Elan durch. Öffne energievoll die Augen."
         },
-        MeditationCategory.TRANSFORMATION: {
-            "title": f"Wandel & Erneuerung{personal_touch}",
-            "greeting": f"Willkommen{personal_touch} zu deiner Transformations-Meditation. Wandel ist das Gesetz des Lebens.",
-            "personal": "Lass alte Muster, die dir nicht mehr dienen, in Liebe gehen. Platz für das Neue schaffen.",
-            "introduction": "Atme tief ein und nimm die Bereitschaft zur Veränderung in dir auf. Ausatmen und Altes loslassen.",
-            "suggestion": "Erlaube dir, dich weiterzuentwickeln. Transformation geschieht von innen nach außen.",
-            "confirmation": "Du bist der Schöpfer deines Lebens. Jedes Ende ist der Beginn von etwas Wundervollem.",
-            "visualization": "Visualisiere einen wunderschönen Schmetterling, der sich aus seinem Kokon befreit und in die Freiheit fliegt.",
-            "conclusion": "Spüre die Erneuerung in dir. Begrüße die beste Version deines Selbst. Öffne mit einem Lächeln deine Augen."
-        },
-        MeditationCategory.INNER_PEACE: {
-            "title": f"Innerer Frieden & Stille{personal_touch}",
-            "greeting": f"Willkommen{personal_touch} zu dieser Reise in deine innere Oase des Friedens. Lass die Welt verstummen.",
-            "personal": "Finde den stillen Ort in dir, der von äußeren Stürmen unberührt bleibt. Er ist immer da.",
-            "introduction": "Lass deinen Atem ganz natürlich fließen. Beobachte die sanfte Bewegung deines Brustkorbs.",
-            "suggestion": "Mit jedem Ausatmen sinkst du tiefer in diesen Ozean der Stille. Friede breitet sich in dir aus.",
-            "confirmation": "In dir liegt eine tiefe, unerschütterliche Ruhe. Du bist im reinen Frieden mit dir und der Welt.",
-            "visualization": "Stell dir einen friedlichen, japanischen Garten im sanften Morgenlicht vor, erfüllt von absoluter Stille.",
-            "conclusion": "Nimm diese tiefe innere Ruhe mit in deinen Alltag. Öffne in deiner Zeit sanft die Augen."
+        MeditationCategory.EVERYDAY_LIFE: {
+            "title": f"Gelassenheit im Alltag{personal_touch}",
+            "greeting": f"Willkommen{personal_touch} zu deiner Auszeit für den Alltag. Finde Stabilität und Leichtigkeit.",
+            "personal": "Egal wie hektisch der Tag ist: Dieser Moment gehört ganz dir, um innezuhalten.",
+            "introduction": "Setze dich bequem und aufrecht hin. Spüre den Boden unter deinen Füßen und atme ruhig ein und aus.",
+            "suggestion": "Lass alle Anspannung von den Schultern fallen. Du meisterst die Aufgaben deines Alltags mit Ruhe und Klarheit.",
+            "confirmation": "In dir ruht eine feste, unerschütterliche Gelassenheit. Du bist jederzeit zentriert.",
+            "visualization": "Stell dir einen mächtigen Baum vor, dessen Wurzeln tief in der Erde verankert sind.",
+            "conclusion": "Spüre die Kraft deiner Wurzeln. Gehe geerdet und gelassen in deinen Tag."
         }
     }
 
@@ -119,7 +119,12 @@ def _generate_static_meditation_steps(category: str, q_a: Any) -> Tuple[str, Lis
         "conclusion": "Komme mit einem Gefühl des Friedens zurück in deinen Körper. Atme tief ein und öffne die Augen."
     }
 
-    theme = themes.get(category, default_theme)
+    category_key: Any = category
+    try:
+        category_key = MeditationCategory(category)
+    except ValueError:
+        pass
+    theme = themes.get(category_key, default_theme)
     title = theme["title"]
     
     # Adjust title/content if focus area is found

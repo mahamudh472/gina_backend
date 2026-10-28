@@ -66,7 +66,7 @@ class MeditationGenerationTests(APITestCase):
     def test_generate_meditation_unauthenticated(self):
         # Unauthenticated request should fail with 401
         data = {
-            "category": "self_discovery",
+            "category": "identity",
             "charecter_voice_id": self.character_voice.id,
             "experience_question_answers": {"name": "Anna", "goal": "stress release"},
             "nature_sound_name": "Ocean Waves",
@@ -79,10 +79,10 @@ class MeditationGenerationTests(APITestCase):
         # Authenticate
         self.client.force_authenticate(user=self.user)
 
-        # Set up active MeditationTemplate for self_discovery category
+        # Set up active MeditationTemplate for identity category
         from apps.main.models import MeditationTemplate, MeditationSteps
         relaxation_template = MeditationTemplate.objects.create(
-            category=MeditationCategory.SELF_DISCOVERY,
+            category=MeditationCategory.IDENTITY,
             charecter_voice=self.character_voice,
             is_active=True
         )
@@ -106,7 +106,7 @@ class MeditationGenerationTests(APITestCase):
         )
 
         data = {
-            "category": "self_discovery",
+            "category": "identity",
             "charecter_voice_id": self.character_voice.id,
             "experience_question_answers": {"name": "Anna", "goal": "stress release"},
             "nature_sound_name": "Ocean Waves",
@@ -152,7 +152,7 @@ class MeditationGenerationTests(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         data = {
-            "category": "emotional_healing",
+            "category": "healing",
             "charecter_voice_id": self.character_voice.id,
             "experience_question_answers": {"name": "Ben"},
             "nature_sound_name": "Non Existent Sound",
@@ -163,6 +163,27 @@ class MeditationGenerationTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         res_data = response.data
         self.assertEqual(set(res_data.keys()), {'id', 'meditation_id', 'total_duration', 'steps'})
+
+    def test_generate_meditation_category_aliases(self):
+        self.client.force_authenticate(user=self.user)
+
+        for alias, expected_cat in [
+            ("identitaet", MeditationCategory.IDENTITY),
+            ("emotionen", MeditationCategory.EMOTIONS),
+            ("heilung", MeditationCategory.HEALING),
+            ("zukunft", MeditationCategory.FUTURE),
+            ("energie", MeditationCategory.ENERGY),
+            ("alltag", MeditationCategory.EVERYDAY_LIFE),
+        ]:
+            data = {
+                "category": alias,
+                "charecter_voice_id": self.character_voice.id,
+                "experience_question_answers": {"name": "Anna"},
+            }
+            response = self.client.post(self.url, data, format='json')
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED, f"Failed for category alias: {alias}")
+            meditation = Meditation.objects.get(id=response.data['id'])
+            self.assertEqual(meditation.category, expected_cat)
 
     def test_get_meditation_detail(self):
         self.client.force_authenticate(user=self.user)
@@ -216,7 +237,7 @@ class MeditationGenerationTests(APITestCase):
             user=self.user,
             title="Archived 1",
             charecter_voice=self.character_voice,
-            category=MeditationCategory.SELF_DISCOVERY
+            category=MeditationCategory.IDENTITY
         )
         MeditationSteps.objects.create(meditation=med1, step_type=MeditationStep.GREETING, content="Hi", duration=datetime.timedelta(seconds=120))
         
@@ -255,35 +276,35 @@ class MeditationGenerationTests(APITestCase):
         self.assertEqual(results[0]['category_name'], "Energie") # med2 is first because of order_by('-created_at')
 
     def test_single_active_music_per_category(self):
-        # Create first active music track in self_discovery category
+        # Create first active music track in identity category
         music1 = Music.objects.create(
-            name="Self Discovery Track 1",
+            name="Identity Track 1",
             file=SimpleUploadedFile("track1.mp3", b"content", content_type="audio/mpeg"),
-            category=MeditationCategory.SELF_DISCOVERY,
+            category=MeditationCategory.IDENTITY,
             is_active=True
         )
         self.assertTrue(music1.is_active)
 
-        # Create second active music track in self_discovery category
+        # Create second active music track in identity category
         music2 = Music.objects.create(
-            name="Self Discovery Track 2",
+            name="Identity Track 2",
             file=SimpleUploadedFile("track2.mp3", b"content", content_type="audio/mpeg"),
-            category=MeditationCategory.SELF_DISCOVERY,
+            category=MeditationCategory.IDENTITY,
             is_active=True
         )
         # Fetch fresh instances from DB
         music1.refresh_from_db()
         music2.refresh_from_db()
 
-        # Relax Track 1 should now be inactive, Relax Track 2 should be active
+        # Track 1 should now be inactive, Track 2 should be active
         self.assertFalse(music1.is_active)
         self.assertTrue(music2.is_active)
 
-        # Create active music in different category (e.g. emotional_healing)
+        # Create active music in different category (e.g. healing)
         music3 = Music.objects.create(
-            name="Emotional Healing Track 1",
+            name="Healing Track 1",
             file=SimpleUploadedFile("track3.mp3", b"content", content_type="audio/mpeg"),
-            category=MeditationCategory.EMOTIONAL_HEALING,
+            category=MeditationCategory.HEALING,
             is_active=True
         )
         music2.refresh_from_db()
@@ -305,27 +326,16 @@ class MeditationGenerationTests(APITestCase):
     def test_generate_meditation_auto_selects_active_music(self):
         self.client.force_authenticate(user=self.user)
 
-        # Create active music for self_discovery
+        # Create active music for identity
         music = Music.objects.create(
-            name="Active Self Discovery Music",
+            name="Active Identity Music",
             file=SimpleUploadedFile("music.mp3", b"content", content_type="audio/mpeg"),
-            category=MeditationCategory.SELF_DISCOVERY,
-            is_active=True
-        )
-
-    def test_generate_meditation_auto_selects_active_music(self):
-        self.client.force_authenticate(user=self.user)
-
-        # Create active music for self_discovery
-        music = Music.objects.create(
-            name="Active Self Discovery Music",
-            file=SimpleUploadedFile("music.mp3", b"content", content_type="audio/mpeg"),
-            category=MeditationCategory.SELF_DISCOVERY,
+            category=MeditationCategory.IDENTITY,
             is_active=True
         )
 
         data = {
-            "category": "self_discovery",
+            "category": "identity",
             "charecter_voice_id": self.character_voice.id,
             "experience_question_answers": {"name": "Anna", "goal": "stress release"},
             "nature_sound_name": "Ocean Waves",
@@ -347,18 +357,18 @@ class MeditationGenerationTests(APITestCase):
     def test_get_meditation_detail_with_music_and_null_music(self):
         self.client.force_authenticate(user=self.user)
 
-        # 1. Meditation with active music for its category (SELF_DISCOVERY)
+        # 1. Meditation with active music for its category (IDENTITY)
         music = Music.objects.create(
             name="Ambient Ocean",
             file=SimpleUploadedFile("ambient.mp3", b"content", content_type="audio/mpeg"),
-            category=MeditationCategory.SELF_DISCOVERY,
+            category=MeditationCategory.IDENTITY,
             is_active=True
         )
         meditation_with_music = Meditation.objects.create(
             user=self.user,
             title="Meditation With Music",
             charecter_voice=self.character_voice,
-            category=MeditationCategory.SELF_DISCOVERY,
+            category=MeditationCategory.IDENTITY,
         )
         detail_url = reverse('meditation-detail', args=[meditation_with_music.pk])
         response = self.client.get(detail_url)
@@ -437,7 +447,7 @@ class MeditationGenerationTests(APITestCase):
         from apps.main.models import MeditationTemplate, MeditationSteps
 
         template = MeditationTemplate.objects.create(
-            category=MeditationCategory.EMOTIONAL_HEALING,
+            category=MeditationCategory.HEALING,
             charecter_voice=self.character_voice,
             is_active=True
         )
@@ -465,7 +475,7 @@ class MeditationGenerationTests(APITestCase):
             user=self.user,
             title="Mix Test",
             charecter_voice=self.character_voice,
-            category=MeditationCategory.EMOTIONAL_HEALING
+            category=MeditationCategory.HEALING
         )
         with self.assertRaises(ValidationError):
             MeditationSteps.objects.create(
@@ -485,16 +495,16 @@ class MeditationGenerationTests(APITestCase):
         res_context = dashboard_callback(None, context)
         template_status = res_context['dashboard']['template_status']
         
-        # Check self_discovery status (should be missing_template)
+        # Check identity status (should be missing_template)
         relax_status = next(
             item for item in template_status 
-            if item['category'] == 'self_discovery' and item['charecter_voice'] == self.character_voice.name
+            if item['category'] == 'identity' and item['charecter_voice'] == self.character_voice.name
         )
         self.assertEqual(relax_status['status'], 'missing_template')
         
-        # Create active template for self_discovery category, but missing steps
+        # Create active template for identity category, but missing steps
         template = MeditationTemplate.objects.create(
-            category=MeditationCategory.SELF_DISCOVERY,
+            category=MeditationCategory.IDENTITY,
             charecter_voice=self.character_voice,
             is_active=True
         )
@@ -509,7 +519,7 @@ class MeditationGenerationTests(APITestCase):
         template_status = res_context['dashboard']['template_status']
         relax_status = next(
             item for item in template_status 
-            if item['category'] == 'self_discovery' and item['charecter_voice'] == self.character_voice.name
+            if item['category'] == 'identity' and item['charecter_voice'] == self.character_voice.name
         )
         self.assertEqual(relax_status['status'], 'missing_steps')
         self.assertIn('Transition', relax_status['status_label'])
@@ -532,7 +542,7 @@ class MeditationGenerationTests(APITestCase):
         template_status = res_context['dashboard']['template_status']
         relax_status = next(
             item for item in template_status 
-            if item['category'] == 'self_discovery' and item['charecter_voice'] == self.character_voice.name
+            if item['category'] == 'identity' and item['charecter_voice'] == self.character_voice.name
         )
         self.assertEqual(relax_status['status'], 'healthy')
         self.assertEqual(relax_status['status_label'], 'Healthy')
@@ -577,7 +587,7 @@ class MeditationGenerationTests(APITestCase):
             user=self.user,
             title="Command Test",
             charecter_voice=self.character_voice,
-            category=MeditationCategory.EMOTIONAL_HEALING
+            category=MeditationCategory.HEALING
         )
         step = MeditationSteps.objects.create(
             meditation=meditation,
@@ -603,7 +613,7 @@ class MeditationGenerationTests(APITestCase):
                 user=self.user,
                 title="Test Auto Duration",
                 charecter_voice=self.character_voice,
-                category=MeditationCategory.EMOTIONAL_HEALING
+                category=MeditationCategory.HEALING
             )
             step = MeditationSteps.objects.create(
                 meditation=meditation,

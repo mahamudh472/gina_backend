@@ -313,8 +313,8 @@ class MeditationPromptTests(TestCase):
         )
 
         data = {
-            "category": "self_discovery",
-            "category_label": "Identität & Selbstfindung",
+            "category": "identity",
+            "category_label": "Identität",
             "user_name": "Anna",
             "goal": "Stress abbauen",
             "avoid": "Sorgen",
@@ -328,15 +328,15 @@ class MeditationPromptTests(TestCase):
         }
 
         prompt = build_prompt(data)
-        self.assertEqual(prompt, "Hello Anna, you chose Identität & Selbstfindung.")
+        self.assertEqual(prompt, "Hello Anna, you chose Identität.")
 
     def test_build_prompt_fallback_to_default(self):
         # Clean up existing prompts
         MeditationPrompt.objects.all().delete()
 
         data = {
-            "category": "self_discovery",
-            "category_label": "Identität & Selbstfindung",
+            "category": "identity",
+            "category_label": "Identität",
             "user_name": "Anna",
             "goal": "Stress abbauen",
             "avoid": "Sorgen",
@@ -358,19 +358,19 @@ class MeditationPromptTests(TestCase):
         # Clean up existing prompts
         MeditationPrompt.objects.all().delete()
 
-        # Create active prompt for self_discovery
+        # Create active prompt for identity
         prompt_relaxation = MeditationPrompt.objects.create(
-            name="Self Discovery Prompt",
-            category="self_discovery",
-            prompt_template="Self Discovery template {user_name}",
+            name="Identity Prompt",
+            category="identity",
+            prompt_template="Identity template {user_name}",
             is_active=True
         )
 
-        # Create active prompt for emotional_healing
+        # Create active prompt for healing
         prompt_self_love = MeditationPrompt.objects.create(
-            name="Emotional Healing Prompt",
-            category="emotional_healing",
-            prompt_template="Emotional Healing template {user_name}",
+            name="Healing Prompt",
+            category="healing",
+            prompt_template="Healing template {user_name}",
             is_active=True
         )
 
@@ -384,34 +384,34 @@ class MeditationPromptTests(TestCase):
         # Clean up existing prompts
         MeditationPrompt.objects.all().delete()
 
-        # Create active prompt for self_discovery
+        # Create active prompt for identity
         prompt_relaxation1 = MeditationPrompt.objects.create(
-            name="Self Discovery Prompt 1",
-            category="self_discovery",
-            prompt_template="Self Discovery template 1",
+            name="Identity Prompt 1",
+            category="identity",
+            prompt_template="Identity template 1",
             is_active=True
         )
 
-        # Create inactive prompt for self_discovery
+        # Create inactive prompt for identity
         prompt_relaxation2 = MeditationPrompt.objects.create(
-            name="Self Discovery Prompt 2",
-            category="self_discovery",
-            prompt_template="Self Discovery template 2",
+            name="Identity Prompt 2",
+            category="identity",
+            prompt_template="Identity template 2",
             is_active=False
         )
 
-        # Create active prompt for emotional_healing
+        # Create active prompt for healing
         prompt_self_love = MeditationPrompt.objects.create(
-            name="Emotional Healing Prompt",
-            category="emotional_healing",
-            prompt_template="Emotional Healing template",
+            name="Healing Prompt",
+            category="healing",
+            prompt_template="Healing template",
             is_active=True
         )
 
-        # Delete the active self_discovery prompt
+        # Delete the active identity prompt
         prompt_relaxation1.delete()
 
-        # self_discovery2 should automatically become active, emotional_healing should remain active
+        # identity2 should automatically become active, healing should remain active
         prompt_relaxation2.refresh_from_db()
         prompt_self_love.refresh_from_db()
         self.assertTrue(prompt_relaxation2.is_active)
@@ -421,27 +421,27 @@ class MeditationPromptTests(TestCase):
         # Clean up existing prompts
         MeditationPrompt.objects.all().delete()
 
-        # Create active prompt for self_discovery
+        # Create active prompt for identity
         MeditationPrompt.objects.create(
-            name="Self Discovery Prompt",
-            category="self_discovery",
-            prompt_template="Self Discovery {user_name}",
+            name="Identity Prompt",
+            category="identity",
+            prompt_template="Identity {user_name}",
             is_active=True
         )
 
-        # Create active prompt for emotional_healing
+        # Create active prompt for healing
         MeditationPrompt.objects.create(
-            name="Emotional Healing Prompt",
-            category="emotional_healing",
-            prompt_template="Emotional Healing {user_name}",
+            name="Healing Prompt",
+            category="healing",
+            prompt_template="Healing {user_name}",
             is_active=True
         )
 
         data = {
-            "category": "emotional_healing",
-            "category_label": "Emotionale Heilung",
+            "category": "healing",
+            "category_label": "Heilung",
             "user_name": "Anna",
-            "goal": "Selbstliebe staerken",
+            "goal": "Heilung staerken",
             "avoid": "Selbstzweifel",
             "duration": 10,
             "experience": "intermediate",
@@ -452,28 +452,28 @@ class MeditationPromptTests(TestCase):
             "questionnaire_answers": {}
         }
 
-        # Should select the emotional_healing prompt
+        # Should select the healing prompt
         prompt = build_prompt(data)
-        self.assertEqual(prompt, "Emotional Healing Anna")
+        self.assertEqual(prompt, "Healing Anna")
 
     def test_build_prompt_fallback_only_if_category_missing(self):
         # Clean up existing prompts
         MeditationPrompt.objects.all().delete()
 
-        # Create active prompt for self_discovery
+        # Create active prompt for identity
         MeditationPrompt.objects.create(
-            name="Self Discovery Prompt",
-            category="self_discovery",
-            prompt_template="Self Discovery {user_name}",
+            name="Identity Prompt",
+            category="identity",
+            prompt_template="Identity {user_name}",
             is_active=True
         )
 
-        # Request emotional_healing which has no prompt
+        # Request healing which has no prompt
         data = {
-            "category": "emotional_healing",
-            "category_label": "Emotionale Heilung",
+            "category": "healing",
+            "category_label": "Heilung",
             "user_name": "Anna",
-            "goal": "Emotionale Heilung",
+            "goal": "Heilung",
             "avoid": "Selbstzweifel",
             "duration": 10,
             "experience": "intermediate",
@@ -484,7 +484,7 @@ class MeditationPromptTests(TestCase):
             "questionnaire_answers": {}
         }
 
-        # Should fallback to default because emotional_healing has no prompt
+        # Should fallback to default because healing has no prompt
         prompt = build_prompt(data)
         self.assertIn("Du bist eine weltklasse Meditationslehrerin", prompt)
         self.assertIn("Name: Anna", prompt)
@@ -612,8 +612,8 @@ class ValidatePayloadTests(TestCase):
         mock_client.chat.completions.create.return_value = mock_response
 
         request_data = {
-            "category": "self_discovery",
-            "category_label": "Identität & Selbstfindung",
+            "category": "identity",
+            "category_label": "Identität",
             "duration": 10,
             "goal": "Ruhe",
             "avoid": "Stress",
@@ -627,7 +627,7 @@ class ValidatePayloadTests(TestCase):
         }
         result = _generate_with_openai(request_data)
         self.assertIsNotNone(result)
-        self.assertEqual(result["title"], "Identität & Selbstfindung Meditation")
+        self.assertEqual(result["title"], "Identität Meditation")
         self.assertEqual(len(result["steps"]), 5)
 
     def test_ensure_format_instructions_appends_when_missing(self):
@@ -652,7 +652,7 @@ class ValidatePayloadTests(TestCase):
         MeditationPrompt.objects.all().delete()
         MeditationPrompt.objects.create(
             name="Bare Admin Prompt",
-            category="self_discovery",
+            category="identity",
             prompt_template="Sprich ruhig und führe den Nutzer.",
             is_active=True,
         )
@@ -676,8 +676,8 @@ class ValidatePayloadTests(TestCase):
         mock_client.chat.completions.create.return_value = mock_response
 
         request_data = {
-            "category": "self_discovery",
-            "category_label": "Identität & Selbstfindung",
+            "category": "identity",
+            "category_label": "Identität",
             "duration": 10,
             "goal": "Ruhe",
             "avoid": "Stress",
